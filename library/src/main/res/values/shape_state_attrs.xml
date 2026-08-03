@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="shape_background" format="reference|color" />
+    <attr name="shape_pressedBackground" format="reference|color" />
+    <attr name="shape_checkedBackground" format="reference|color" />
+    <attr name="shape_disabledBackground" format="reference|color" />
+    <attr name="shape_focusedBackground" format="reference|color" />
+    <attr name="shape_selectedBackground" format="reference|color" />
+
+    <declare-styleable name="ShapeBackgroundState">
+        <attr name="shape_background" />
+        <attr name="shape_pressedBackground" />
+        <attr name="shape_checkedBackground" />
+        <attr name="shape_disabledBackground" />
+        <attr name="shape_focusedBackground" />
+        <attr name="shape_selectedBackground" />
+    </declare-styleable>
+
+    <attr name="shape_textPressed" format="string" />
+    <attr name="shape_textChecked" format="string" />
+    <attr name="shape_textDisabled" format="string" />
+    <attr name="shape_textFocused" format="string" />
+    <attr name="shape_textSelected" format="string" />
+
+    <declare-styleable name="ShapeTextState">
+        <attr name="shape_textPressed" />
+        <attr name="shape_textChecked" />
+        <attr name="shape_textDisabled" />
+        <attr name="shape_textFocused" />
+        <attr name="shape_textSelected" />
+    </declare-styleable>
+</resources>

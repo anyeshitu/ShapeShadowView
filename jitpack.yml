@@ -1,0 +1,3 @@
+# Android Gradle Plugin 8.x 需要使用 JDK 17 构建。
+jdk:
+  - openjdk17

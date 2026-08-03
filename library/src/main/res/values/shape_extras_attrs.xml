@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Applies the same radius to both top corners. -->
+    <attr name="shape_radiusInTop" format="dimension" />
+    <!-- Applies the same radius to both bottom corners. -->
+    <attr name="shape_radiusInBottom" format="dimension" />
+
+    <attr name="shape_rippleEnable" format="boolean" />
+    <attr name="shape_rippleColor" format="color" />
+
+    <declare-styleable name="ShapeExtras">
+        <attr name="shape_radiusInTop" />
+        <attr name="shape_radiusInBottom" />
+        <attr name="shape_rippleEnable" />
+        <attr name="shape_rippleColor" />
+    </declare-styleable>
+</resources>

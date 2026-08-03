@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="shape_shadowHidden" format="boolean" />
+    <attr name="shape_shadowSpread" format="dimension" />
+    <attr name="shape_shadowSymmetry" format="boolean" />
+    <attr name="shape_shadowHiddenLeft" format="boolean" />
+    <attr name="shape_shadowHiddenTop" format="boolean" />
+    <attr name="shape_shadowHiddenRight" format="boolean" />
+    <attr name="shape_shadowHiddenBottom" format="boolean" />
+    <attr name="shape_shadowBitmapScale" format="float" />
+
+    <declare-styleable name="ShapeShadow">
+        <attr name="shape_shadowSize" />
+        <attr name="shape_shadowColor" />
+        <attr name="shape_shadowOffsetX" />
+        <attr name="shape_shadowOffsetY" />
+        <attr name="shape_shadowHidden" />
+        <attr name="shape_shadowSpread" />
+        <attr name="shape_shadowSymmetry" />
+        <attr name="shape_shadowHiddenLeft" />
+        <attr name="shape_shadowHiddenTop" />
+        <attr name="shape_shadowHiddenRight" />
+        <attr name="shape_shadowHiddenBottom" />
+        <attr name="shape_shadowBitmapScale" />
+    </declare-styleable>
+</resources>

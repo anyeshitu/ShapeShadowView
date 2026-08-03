@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="shape_src" format="reference" />
+    <attr name="shape_pressedSrc" format="reference" />
+    <attr name="shape_checkedSrc" format="reference" />
+    <attr name="shape_disabledSrc" format="reference" />
+    <attr name="shape_focusedSrc" format="reference" />
+    <attr name="shape_selectedSrc" format="reference" />
+
+    <declare-styleable name="ShapeImageSource">
+        <attr name="shape_src" />
+        <attr name="shape_pressedSrc" />
+        <attr name="shape_checkedSrc" />
+        <attr name="shape_disabledSrc" />
+        <attr name="shape_focusedSrc" />
+        <attr name="shape_selectedSrc" />
+    </declare-styleable>
+</resources>

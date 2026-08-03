@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="shape_tint" format="color" />
+    <attr name="shape_pressedTint" format="color" />
+    <attr name="shape_checkedTint" format="color" />
+    <attr name="shape_disabledTint" format="color" />
+    <attr name="shape_focusedTint" format="color" />
+    <attr name="shape_selectedTint" format="color" />
+
+    <declare-styleable name="ShapeImageTint">
+        <attr name="shape_tint" />
+        <attr name="shape_pressedTint" />
+        <attr name="shape_checkedTint" />
+        <attr name="shape_disabledTint" />
+        <attr name="shape_focusedTint" />
+        <attr name="shape_selectedTint" />
+    </declare-styleable>
+</resources>

@@ -233,6 +233,35 @@
     <!-- CheckBox 或者 RadioButton 图标（选择状态） -->
     <attr name="shape_buttonSelectedDrawable" format="reference" />
 
+    <!-- ShapeTextView 固定高度文本自适应（默认关闭） -->
+    <attr name="shape_adaptiveTextEnable" format="boolean" />
+    <!-- 自适应策略 -->
+    <attr name="shape_adaptiveTextMode" format="integer">
+        <enum name="reduceLines" value="1" />
+        <enum name="reduceLineSpacing" value="2" />
+        <enum name="reduceLineSpacingThenLines" value="3" />
+    </attr>
+    <!-- 自适应允许保留的最小行数 -->
+    <attr name="shape_adaptiveMinLines" format="integer" />
+    <!-- setLineSpacing add 参数允许缩小到的最小值 -->
+    <attr name="shape_adaptiveMinLineSpacingExtra" format="dimension" />
+
+    <!-- ShapeTextView 自动缩小字号（默认关闭） -->
+    <attr name="shape_autoFitTextEnable" format="boolean" />
+    <!-- 自动字号允许缩小到的最小值 -->
+    <attr name="shape_autoFitMinTextSize" format="dimension" />
+    <!-- 自动字号允许恢复到的最大值，默认使用 android:textSize -->
+    <attr name="shape_autoFitMaxTextSize" format="dimension" />
+    <!-- 二分查找精度，默认 0.5px -->
+    <attr name="shape_autoFitPrecision" format="float" />
+
+    <!-- ShapeTextView 系统跑马灯（默认关闭） -->
+    <attr name="shape_marqueeEnable" format="boolean" />
+    <!-- 跑马灯重复次数，-1 表示无限循环 -->
+    <attr name="shape_marqueeRepeatLimit" format="integer" />
+    <!-- 完全位于屏幕可见区域时才滚动 -->
+    <attr name="shape_marqueeRequireFullyVisible" format="boolean" />
+
     <declare-styleable name="ShapeTextView">
         <attr name="shape_type" />
         <attr name="shape_width" />
@@ -300,6 +329,20 @@
 
         <attr name="shape_textStrokeColor" />
         <attr name="shape_textStrokeSize" />
+
+        <attr name="shape_adaptiveTextEnable" />
+        <attr name="shape_adaptiveTextMode" />
+        <attr name="shape_adaptiveMinLines" />
+        <attr name="shape_adaptiveMinLineSpacingExtra" />
+
+        <attr name="shape_autoFitTextEnable" />
+        <attr name="shape_autoFitMinTextSize" />
+        <attr name="shape_autoFitMaxTextSize" />
+        <attr name="shape_autoFitPrecision" />
+
+        <attr name="shape_marqueeEnable" />
+        <attr name="shape_marqueeRepeatLimit" />
+        <attr name="shape_marqueeRequireFullyVisible" />
     </declare-styleable>
 
     <declare-styleable name="ShapeButton">

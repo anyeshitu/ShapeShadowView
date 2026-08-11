@@ -40,3 +40,23 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 Source: https://github.com/lihangleo2/ShadowLayout
+
+## AdaptiveTextView
+
+The optional fixed-height text adaptation behavior was designed with reference to the public
+behavior and examples of AdaptiveTextView. The implementation in this project was written
+independently; no AdaptiveTextView source files were copied.
+
+Source: https://github.com/AndrewSuan/AdaptiveTextView
+
+## XUI AutoFitTextView
+
+The optional automatic text-size fitting algorithm is adapted from the public
+AutoFitTextView/AutoFitHelper implementation in XUI. The referenced implementation is licensed
+under Apache License 2.0.
+
+Copyright (C) 2019 xuexiangjys
+
+License: https://www.apache.org/licenses/LICENSE-2.0
+
+Source: https://github.com/xuexiangjys/XUI/tree/master/xui_lib/src/main/java/com/xuexiang/xui/widget/textview/autofit

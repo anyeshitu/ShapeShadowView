@@ -20,7 +20,7 @@ Builder 调用方式为基础，吸收了
 | 阴影 | 真实模糊阴影、扩散、偏移、对称空间、整体隐藏、按边隐藏、位图缓存缩放 |
 | 交互 | Android `RippleDrawable` 水波纹，自动匹配圆角和形状 |
 | 背景 | Color、Bitmap、Vector、XML Drawable，并支持各状态背景和形状裁剪 |
-| 文本 | 状态颜色、渐变、描边、各状态文本内容 |
+| 文本 | 状态颜色、渐变、描边、各状态文本内容、固定高度自适应、自动字号、跑马灯 |
 | 复选控件 | CheckBox、RadioButton 的各状态按钮图标 |
 | 图片状态 | ShapeImageView 默认、按下、选中、禁用、聚焦和选择状态 tint 与 src |
 
@@ -74,7 +74,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.anyeshitu:ShapeShadowView:1.0.0")
+    implementation("com.github.anyeshitu:ShapeShadowView:1.1.0")
 }
 ```
 
@@ -82,7 +82,7 @@ Groovy DSL：
 
 ```groovy
 dependencies {
-    implementation 'com.github.anyeshitu:ShapeShadowView:1.0.0'
+    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.0'
 }
 ```
 
@@ -445,6 +445,85 @@ app:shape_textDisabled="暂不可用"
 禁用状态优先匹配。请使用 `android:enabled="false"` 进入禁用状态，而不是用
 `android:clickable="false"` 模拟禁用。
 
+### ShapeTextView 固定高度自适应
+
+该能力的行为参考 [AdaptiveTextView](https://github.com/AndrewSuan/AdaptiveTextView)，仅适用于
+`ShapeTextView`。它不会缩小字号，而是在固定可用高度不足时压缩行间距、减少 `maxLines`，
+或者先压缩行间距再减少行数。默认关闭，不会影响现有布局。
+
+| 属性 | 格式/可选值 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `shape_adaptiveTextEnable` | boolean | `false` | 是否启用固定高度文本自适应 |
+| `shape_adaptiveTextMode` | `reduceLines`、`reduceLineSpacing`、`reduceLineSpacingThenLines` | `reduceLines` | 高度不足时采用的策略 |
+| `shape_adaptiveMinLines` | integer | `1` | 减少行数时允许保留的最小行数 |
+| `shape_adaptiveMinLineSpacingExtra` | dimension | 自动 | `setLineSpacing` 的 add 参数下限；未配置时根据字体 descent 自动计算 |
+
+```xml
+<com.allynav.shape.view.ShapeTextView
+    android:layout_width="match_parent"
+    android:layout_height="80dp"
+    android:ellipsize="end"
+    android:maxLines="3"
+    android:text="需要在固定高度内完整排布的多行文本"
+    android:textSize="23sp"
+    app:shape_adaptiveTextEnable="true"
+    app:shape_adaptiveTextMode="reduceLineSpacingThenLines"
+    app:shape_adaptiveMinLines="1" />
+```
+
+文本、字号、内边距、控件尺寸、`maxLines` 或行间距发生变化后，控件会先恢复 XML/Java
+配置的基准值再重新计算，不会持续累减 `maxLines`。该功能要求 `layout_height` 为固定尺寸且
+配置有限的 `android:maxLines`；`wrap_content`、`match_parent` 或未限制行数时不会执行调整。
+
+### ShapeTextView 自动字号
+
+该能力参考 XUI 的 `AutoFitTextView`，通过二分查找在有限 `android:maxLines` 内找到合适的字号，
+不会改动 Shape 背景、阴影或文字颜色。默认关闭；需要时可通过 XML 开启：
+
+| 属性 | 格式 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `shape_autoFitTextEnable` | boolean | `false` | 是否开启自动字号 |
+| `shape_autoFitMinTextSize` | dimension | `8sp` | 允许使用的最小字号 |
+| `shape_autoFitMaxTextSize` | dimension | `android:textSize` | 允许使用的最大字号 |
+| `shape_autoFitPrecision` | float | `0.5` | 二分查找精度，越小越精确但计算更多 |
+
+```xml
+<com.allynav.shape.view.ShapeTextView
+    android:layout_width="180dp"
+    android:layout_height="56dp"
+    android:maxLines="2"
+    android:text="需要在有限宽度和行数内自动缩小的文字"
+    android:textSize="20sp"
+    app:shape_autoFitTextEnable="true"
+    app:shape_autoFitMinTextSize="12sp"
+    app:shape_autoFitPrecision="0.5" />
+```
+
+该能力要求有限的 `android:maxLines`；未限制行数时不会调整。它可以和固定高度自适应同时开启，
+执行顺序是先自动缩小字号，仍然放不下时再按 `shape_adaptiveTextMode` 处理行间距或行数。
+
+### ShapeTextView 跑马灯
+
+该能力使用 Android 原生 `MARQUEE`，并在控件离开屏幕时自动取消 `selected`，重新完全可见后恢复滚动。
+默认关闭，开启后控件会自动设置为单行：
+
+| 属性 | 格式 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `shape_marqueeEnable` | boolean | `false` | 是否开启系统跑马灯 |
+| `shape_marqueeRepeatLimit` | integer | `-1` | 重复次数，`-1` 表示无限循环 |
+| `shape_marqueeRequireFullyVisible` | boolean | `true` | 是否要求控件完整位于屏幕内才滚动 |
+
+```xml
+<com.allynav.shape.view.ShapeTextView
+    android:layout_width="180dp"
+    android:layout_height="48dp"
+    android:gravity="center_vertical"
+    android:text="超过控件宽度后自动滚动显示的文字"
+    android:textSize="16sp"
+    app:shape_marqueeEnable="true"
+    app:shape_marqueeRepeatLimit="-1" />
+```
+
 ### CheckBox 和 RadioButton 图标
 
 | 属性 | 格式 | 说明 |
@@ -580,6 +659,36 @@ shapeButton.getTextStateDelegate()
         .setDisabledText("暂不可用")
         .setFocusedText("继续提交");
 ```
+
+### 动态设置 ShapeTextView 自适应
+
+```java
+shapeTextView.setAdaptiveTextMode(
+        ShapeTextView.ADAPTIVE_MODE_REDUCE_LINE_SPACING_THEN_LINES);
+shapeTextView.setAdaptiveMinLines(1);
+shapeTextView.setAdaptiveTextEnabled(true);
+```
+
+`setAdaptiveMinLineSpacingExtra(float)` 的单位是 px。调用
+`clearAdaptiveMinLineSpacingExtra()` 可以恢复为按字体 descent 自动计算下限。
+
+### 动态设置自动字号和跑马灯
+
+```java
+shapeTextView.setAutoFitMinTextSize(12f); // 单位：sp
+shapeTextView.setAutoFitPrecision(0.5f);
+shapeTextView.setAutoFitTextEnabled(true);
+
+shapeTextView.setShapeMarqueeRepeatLimit(-1);
+shapeTextView.setMarqueeRequireFullyVisible(true);
+shapeTextView.setMarqueeEnabled(true);
+```
+
+关闭 `setMarqueeEnabled(false)` 会恢复控件创建时的单行、行数和 `ellipsize` 配置；关闭
+`setAutoFitTextEnabled(false)` 会恢复调用前的字号。
+
+为方便从 XUI `AutoFitTextView` 迁移，也保留了 `setEnableFit`、`enableFit`、`isEnableFit`、
+`setMinTextSize`、`setMaxTextSize` 和 `setPrecision` 这些兼容方法。
 
 ### 动态设置 CheckBox 或 RadioButton 图标
 

@@ -13,7 +13,10 @@ public final class MarqueeTextDelegate {
 
     private final TextView mTextView;
     private final Rect mVisibleRect = new Rect();
-    private final Runnable mRefreshRunnable = this::refreshSelectedState;
+    private final Runnable mRefreshRunnable = () -> {
+        mRefreshPosted = false;
+        refreshSelectedState();
+    };
     private final ViewTreeObserver.OnScrollChangedListener mScrollChangedListener =
             this::scheduleRefresh;
     private final ViewTreeObserver.OnGlobalLayoutListener mGlobalLayoutListener =
@@ -29,6 +32,7 @@ public final class MarqueeTextDelegate {
     private boolean mConfigurationApplied;
     private boolean mObserving;
     private boolean mApplyingConfiguration;
+    private boolean mRefreshPosted;
     private ViewTreeObserver mObserver;
 
     public MarqueeTextDelegate(TextView textView, TypedArray typedArray) {
@@ -86,10 +90,14 @@ public final class MarqueeTextDelegate {
             return;
         }
         if (!isVisible) {
-            mTextView.removeCallbacks(mRefreshRunnable);
+            cancelRefresh();
             mTextView.setSelected(false);
             return;
         }
+        scheduleRefresh();
+    }
+
+    public void onLayout() {
         scheduleRefresh();
     }
 
@@ -99,7 +107,7 @@ public final class MarqueeTextDelegate {
     }
 
     public void onDetachedFromWindow() {
-        mTextView.removeCallbacks(mRefreshRunnable);
+        cancelRefresh();
         stopObserving();
         if (mEnabled) {
             mTextView.setSelected(false);
@@ -107,7 +115,7 @@ public final class MarqueeTextDelegate {
     }
 
     private void applyConfiguration() {
-        mTextView.removeCallbacks(mRefreshRunnable);
+        cancelRefresh();
         mApplyingConfiguration = true;
         try {
             if (!mEnabled) {
@@ -144,11 +152,17 @@ public final class MarqueeTextDelegate {
     }
 
     private void scheduleRefresh() {
-        if (!mEnabled) {
+        if (!mEnabled || mRefreshPosted) {
             return;
         }
-        mTextView.removeCallbacks(mRefreshRunnable);
+        // 合并连续布局和滚动事件，但不重复计时，避免刷新任务一直被推迟。
+        mRefreshPosted = true;
         mTextView.postDelayed(mRefreshRunnable, 300L);
+    }
+
+    private void cancelRefresh() {
+        mTextView.removeCallbacks(mRefreshRunnable);
+        mRefreshPosted = false;
     }
 
     private void refreshSelectedState() {

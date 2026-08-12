@@ -11,9 +11,15 @@ import android.graphics.drawable.Drawable;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-/** Clips an arbitrary color, image, vector or XML drawable to ShapeView geometry. */
+/**
+ * 将任意颜色、图片、Vector 或 XML Drawable 裁剪为 ShapeView 轮廓。
+ *
+ * <p>矩形使用四角独立圆角 Path，椭圆使用 Oval Path。包装器完整转发 state、level、
+ * visible、hotspot 和 Drawable.Callback，确保被裁剪内容仍保留选择器与 Ripple 行为。</p>
+ */
 public final class ShapeClipDrawable extends Drawable implements Drawable.Callback {
 
+    /** 被裁剪内容、目标形状和复用的裁剪路径。 */
     private final Drawable mContentDrawable;
     private final int mShapeType;
     private final float[] mRadii;
@@ -41,6 +47,7 @@ public final class ShapeClipDrawable extends Drawable implements Drawable.Callba
 
     @Override
     protected void onBoundsChange(@NonNull Rect bounds) {
+        // 边界变化时同步内容 bounds，并只重建一次裁剪 Path。
         mContentDrawable.setBounds(bounds);
         mRect.set(bounds);
         mClipPath.reset();
@@ -53,6 +60,7 @@ public final class ShapeClipDrawable extends Drawable implements Drawable.Callba
 
     @Override
     public void draw(@NonNull Canvas canvas) {
+        // save/restore 将 clipPath 的影响限制在当前 Drawable 绘制范围内。
         int saveCount = canvas.save();
         canvas.clipPath(mClipPath);
         mContentDrawable.draw(canvas);
@@ -139,6 +147,7 @@ public final class ShapeClipDrawable extends Drawable implements Drawable.Callba
 
     @Override
     public void invalidateDrawable(@NonNull Drawable who) {
+        // 子 Drawable 失效时通知外层 View 重绘。
         invalidateSelf();
     }
 

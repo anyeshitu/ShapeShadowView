@@ -9,14 +9,15 @@ import com.allynav.shape.config.ITextColorStyleable;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2021/08/28
- *    desc   : RadioButton 的 Shape 属性值
+ *    desc   : RadioButton 的 Shape、文字和按钮图标属性索引映射
+ *
+ * <p>同时实现背景、文字和 CompoundButton 图标协议，使 ShapeRadioButton 支持
+ * checked 等状态的一致背景、文字色和按钮图片。该类只负责索引映射。</p>
  */
 public final class ShapeRadioButtonStyleable implements IShapeDrawableStyleable,
         ITextColorStyleable, ICompoundButtonStyleable {
 
-    /**
-     * {@link IShapeDrawableStyleable}
-     */
+    /** 以下方法映射 Shape 背景属性，返回 R.styleable 中的实际索引。 */
 
     @Override
     public int getShapeTypeStyleable() {

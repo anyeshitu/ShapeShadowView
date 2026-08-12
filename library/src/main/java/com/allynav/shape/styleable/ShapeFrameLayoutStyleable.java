@@ -7,13 +7,14 @@ import com.allynav.shape.config.IShapeDrawableStyleable;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2021/08/28
- *    desc   : FrameLayout 的 Shape 属性值
+ *    desc   : FrameLayout 的 Shape 属性索引映射
+ *
+ * <p>把 ShapeFrameLayout 的具体属性索引转换为 IShapeDrawableStyleable 协议，供共享
+ * ShapeDrawableBuilder 读取背景、状态色、圆角、Ripple 和阴影参数。</p>
  */
 public final class ShapeFrameLayoutStyleable implements IShapeDrawableStyleable {
 
-    /**
-     * {@link IShapeDrawableStyleable}
-     */
+    /** 以下方法均返回 ShapeFrameLayout 对应属性在 R.styleable 中的索引。 */
 
     @Override
     public int getShapeTypeStyleable() {

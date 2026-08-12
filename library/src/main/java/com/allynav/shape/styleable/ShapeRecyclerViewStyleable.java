@@ -7,13 +7,14 @@ import com.allynav.shape.config.IShapeDrawableStyleable;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2021/08/28
- *    desc   : RecyclerView 的 Shape 属性值
+ *    desc   : RecyclerView 的 Shape 属性索引映射
+ *
+ * <p>为 ShapeRecyclerView 映射统一背景属性。列表滚动、ItemDecoration 和 LayoutManager
+ * 行为仍由 RecyclerView 负责，本类只参与容器背景构建。</p>
  */
 public final class ShapeRecyclerViewStyleable implements IShapeDrawableStyleable {
 
-    /**
-     * {@link IShapeDrawableStyleable}
-     */
+    /** 以下方法均返回 ShapeRecyclerView 对应属性在 R.styleable 中的索引。 */
 
     @Override
     public int getShapeTypeStyleable() {

@@ -13,11 +13,14 @@ import com.allynav.shape.config.ITextViewAttribute;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2022/05/04
- *    desc   : 通用 Span 类
+ *    desc   : 统一文字测量、对齐和 Paint 恢复的 ReplacementSpan 基类
+ *
+ * <p>子类只需实现 onMeasure 和 onDraw。本类负责回填字体高度、根据 TextView
+ * gravity/RTL 修正横向坐标，并在绘制后恢复 Paint 状态，避免影响同一行后续文字。</p>
  */
 public abstract class CommonFontSpan extends AlignmentReplacementSpan {
 
-    /** 测量的文本宽度 */
+    /** getSize 阶段缓存的文本宽度，draw 阶段用于对齐和子类效果绘制。 */
     private float mMeasureTextWidth;
 
     public CommonFontSpan(ITextViewAttribute textViewAttribute) {

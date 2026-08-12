@@ -13,22 +13,28 @@ import androidx.annotation.Nullable;
 import com.allynav.shape.R;
 
 /**
- * ImageView tint builder with standard Android drawable-state support.
+ * ImageView 状态着色构建器。
  *
- * <p>当没有匹配到自定义状态时，会恢复 ImageView 原本的 android:tint，避免状态 tint
- * 配置影响普通状态下的图片显示。</p>
+ * <p>支持默认、按下、checked、禁用、聚焦和 selected tint。没有匹配到自定义状态时
+ * 恢复 ImageView 原始 {@code android:tint}，避免局部状态配置改变普通状态显示。</p>
+ *
+ * <p>颜色使用 {@link ColorStateList} 应用，既保留 AppCompat 的兼容行为，也允许在
+ * DrawableState 变化时只替换当前 tint 而不更换 src。</p>
  */
 public final class ImageTintBuilder {
 
+    /** 状态匹配顺序由高优先级到低优先级。 */
     private static final int[] STATE_PRESSED = {android.R.attr.state_pressed};
     private static final int[] STATE_CHECKED = {android.R.attr.state_checked};
     private static final int[] STATE_DISABLED = {-android.R.attr.state_enabled};
     private static final int[] STATE_FOCUSED = {android.R.attr.state_focused};
     private static final int[] STATE_SELECTED = {android.R.attr.state_selected};
 
+    /** 目标 ImageView 及构建器创建时保存的原始 tint。 */
     private final ImageView mImageView;
     private final ColorStateList mOriginalTint;
 
+    /** 是否已调用 intoTint；setter 只修改配置，不直接接管控件 tint。 */
     private boolean mTintConfigured;
     private boolean mHasTint;
     private int mTintColor = Color.WHITE;
@@ -139,11 +145,13 @@ public final class ImageTintBuilder {
     }
 
     public void intoTint() {
+        // 立即按当前状态解析颜色，保证动态设置后马上生效。
         mTintConfigured = true;
         onDrawableStateChanged(mImageView.getDrawableState());
     }
 
     public void clearTint() {
+        // 恢复控件创建构建器时的原始 ColorStateList。
         mTintConfigured = false;
         mHasTint = false;
         mPressedTint = null;
@@ -171,6 +179,7 @@ public final class ImageTintBuilder {
 
     @Nullable
     private Integer resolveStateTint(@NonNull int[] stateSet) {
+        // 禁用状态优先，随后处理按下、checked、聚焦和 selected 状态。
         if (mDisabledTint != null && StateSet.stateSetMatches(STATE_DISABLED, stateSet)) {
             return mDisabledTint;
         }

@@ -20,14 +20,20 @@ import com.allynav.shape.other.TextStateDelegate;
 import com.allynav.shape.styleable.ShapeTextViewStyleable;
 
 /**
- *    author : Android 轮子哥
- *    github : https://github.com/getActivity/ShapeView
- *    time   : 2021/07/17
- *    desc   : 支持直接定义 Shape 背景的 TextView
+ * ShapeView 风格的增强 TextView。
+ *
+ * <p>除 Shape 背景、状态文字色、渐变、描边和状态文本外，还集成三项默认关闭的文字
+ * 能力：固定高度自适应、二分查找自动字号和系统跑马灯。三项能力通过独立委托实现，
+ * 避免继承多个第三方 TextView 时产生测量与生命周期冲突。</p>
+ *
+ * <p>执行顺序为：测量前恢复自适应基准值；正常测量/布局；布局后先自动调整字号；字号
+ * 稳定后再压缩行间距或减少行数。跑马灯启用时强制单行，并根据控件及父容器的最终
+ * 屏幕可见性维护 selected 状态。</p>
  */
 public class ShapeTextView extends AppCompatTextView implements
         IGetShapeDrawableBuilder, IGetTextColorBuilder, IGetTextStateDelegate {
 
+    /** 固定高度自适应模式常量，值与 attrs.xml 中枚举保持一致。 */
     public static final int ADAPTIVE_MODE_REDUCE_LINES =
             AdaptiveTextDelegate.MODE_REDUCE_LINES;
     public static final int ADAPTIVE_MODE_REDUCE_LINE_SPACING =
@@ -37,6 +43,7 @@ public class ShapeTextView extends AppCompatTextView implements
 
     private static final ShapeTextViewStyleable STYLEABLE = new ShapeTextViewStyleable();
 
+    /** 外观、状态文本和三项文字行为分别由独立对象管理。 */
     private final ShapeDrawableBuilder mShapeDrawableBuilder;
     private final TextColorBuilder mTextColorBuilder;
     private final TextStateDelegate mTextStateDelegate;
@@ -55,6 +62,7 @@ public class ShapeTextView extends AppCompatTextView implements
     public ShapeTextView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
 
+        // 所有委托先复制 XML 配置，再统一回收 TypedArray 并应用初始外观。
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.ShapeTextView);
         mShapeDrawableBuilder = new ShapeDrawableBuilder(this, attrs, typedArray, STYLEABLE);
         mTextColorBuilder = new TextColorBuilder(this, typedArray, STYLEABLE);
@@ -62,6 +70,7 @@ public class ShapeTextView extends AppCompatTextView implements
         mAdaptiveTextDelegate = new AdaptiveTextDelegate(this, typedArray);
         mAutoFitTextDelegate = new AutoFitTextDelegate(this, typedArray);
         mMarqueeTextDelegate = new MarqueeTextDelegate(this, typedArray);
+        // 跑马灯会修改 singleLine/ellipsize，必须在保存完其他文字基准配置后初始化。
         mMarqueeTextDelegate.initialize();
         typedArray.recycle();
 
@@ -81,6 +90,7 @@ public class ShapeTextView extends AppCompatTextView implements
 
     @Override
     public void setText(CharSequence text, BufferType type) {
+        // 描边开启时把文本包装成 Span；状态委托只记录调用方原始文本。
         if (mTextColorBuilder != null && mTextColorBuilder.isTextStrokeColorEnable()) {
             super.setText(mTextColorBuilder.buildStrokeFontSpannable(text), BufferType.SPANNABLE);
         } else {
@@ -94,6 +104,7 @@ public class ShapeTextView extends AppCompatTextView implements
     @Override
     protected void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
         super.onTextChanged(text, start, lengthBefore, lengthAfter);
+        // 文本变化会影响换行、高度和字号，通知两个自适应委托重新计算。
         if (mAdaptiveTextDelegate != null) {
             mAdaptiveTextDelegate.onContentMetricsChanged();
         }
@@ -107,6 +118,7 @@ public class ShapeTextView extends AppCompatTextView implements
     @Override
     public void setMaxLines(int maxLines) {
         super.setMaxLines(maxLines);
+        // 外部修改 maxLines 时更新基准；委托内部临时修改由 applying 标记过滤。
         if (mAdaptiveTextDelegate != null && !isMarqueeApplyingConfiguration()) {
             mAdaptiveTextDelegate.onMaxLinesChanged(maxLines);
         }
@@ -133,6 +145,7 @@ public class ShapeTextView extends AppCompatTextView implements
     @Override
     public void setLineSpacing(float add, float multiplier) {
         super.setLineSpacing(add, multiplier);
+        // 行距既影响固定高度适配，也影响自动字号的 StaticLayout 测量。
         if (mAdaptiveTextDelegate != null) {
             mAdaptiveTextDelegate.onLineSpacingChanged(add, multiplier);
         }
@@ -143,6 +156,7 @@ public class ShapeTextView extends AppCompatTextView implements
 
     @Override
     public void setEllipsize(TextUtils.TruncateAt where) {
+        // 跑马灯开启期间始终保持 MARQUEE，防止样式或业务代码改回 END。
         if (mMarqueeTextDelegate != null
                 && mMarqueeTextDelegate.isEnabled()
                 && !mMarqueeTextDelegate.isApplyingConfiguration()) {
@@ -164,6 +178,7 @@ public class ShapeTextView extends AppCompatTextView implements
     @Override
     public void setTextSize(int unit, float size) {
         super.setTextSize(unit, size);
+        // 保存调用方字号作为自动字号关闭后的恢复值，并触发排版重新计算。
         if (mAdaptiveTextDelegate != null) {
             mAdaptiveTextDelegate.onContentMetricsChanged();
         }
@@ -196,6 +211,7 @@ public class ShapeTextView extends AppCompatTextView implements
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        // 固定高度适配上轮产生的临时行距/行数必须在系统测量前恢复。
         if (mAdaptiveTextDelegate != null) {
             mAdaptiveTextDelegate.beforeMeasure();
         }
@@ -205,7 +221,9 @@ public class ShapeTextView extends AppCompatTextView implements
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
+        // 动态显示后的首次布局完成时，跑马灯才能取得有效尺寸和屏幕坐标。
         mMarqueeTextDelegate.onLayout();
+        // 自动字号发生变化会请求下一轮布局，本轮不再继续压缩行距或行数。
         if (mAutoFitTextDelegate.fitAfterLayout()) {
             return;
         }
@@ -215,6 +233,7 @@ public class ShapeTextView extends AppCompatTextView implements
     @Override
     protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
         super.onSizeChanged(width, height, oldWidth, oldHeight);
+        // 只有宽度变化会改变文字换行和单行可用空间。
         if (mAutoFitTextDelegate != null && width != oldWidth) {
             mAutoFitTextDelegate.onContentMetricsChanged();
         }
@@ -224,6 +243,7 @@ public class ShapeTextView extends AppCompatTextView implements
     protected void onVisibilityChanged(android.view.View changedView, int visibility) {
         super.onVisibilityChanged(changedView, visibility);
         if (mMarqueeTextDelegate != null) {
+            // 普通可见性回调可能早于父容器布局完成，仅用于停止或安排延迟刷新。
             mMarqueeTextDelegate.onVisibilityChanged(
                     isShown() && getWindowVisibility() == VISIBLE);
         }
@@ -233,19 +253,31 @@ public class ShapeTextView extends AppCompatTextView implements
     protected void onWindowVisibilityChanged(int visibility) {
         super.onWindowVisibilityChanged(visibility);
         if (mMarqueeTextDelegate != null) {
+            // Activity、Dialog 或窗口前后台切换时同步停止或恢复跑马灯。
             mMarqueeTextDelegate.onVisibilityChanged(
                     visibility == VISIBLE && isShown());
         }
     }
 
     @Override
+    public void onVisibilityAggregated(boolean isVisible) {
+        super.onVisibilityAggregated(isVisible);
+        if (mMarqueeTextDelegate != null) {
+            // 聚合状态包含所有父容器，负责处理父布局 GONE -> VISIBLE 的最终结果。
+            mMarqueeTextDelegate.onVisibilityAggregated(isVisible);
+        }
+    }
+
+    @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
+        // 附着后开始监听全局布局和滚动，首次刷新会延迟到坐标稳定后执行。
         mMarqueeTextDelegate.onAttachedToWindow();
     }
 
     @Override
     protected void onDetachedFromWindow() {
+        // 必须先取消委托中的任务和监听器，再执行父类的窗口分离逻辑。
         mMarqueeTextDelegate.onDetachedFromWindow();
         super.onDetachedFromWindow();
     }
@@ -253,6 +285,7 @@ public class ShapeTextView extends AppCompatTextView implements
     @Override
     protected void drawableStateChanged() {
         super.drawableStateChanged();
+        // pressed/checked/disabled 等状态变化时同步可选状态文本。
         if (mTextStateDelegate != null) {
             mTextStateDelegate.refresh();
         }
@@ -260,6 +293,7 @@ public class ShapeTextView extends AppCompatTextView implements
 
     @Override
     protected void onDraw(Canvas canvas) {
+        // 渐变依赖最终尺寸，先更新 Paint Shader，再执行 TextView 原始绘制。
         mTextColorBuilder.onDraw(this, canvas, getPaint());
         super.onDraw(canvas);
     }
@@ -400,6 +434,7 @@ public class ShapeTextView extends AppCompatTextView implements
     }
 
     public void setMarqueeEnabled(boolean enabled) {
+        // 跑马灯切换会改变单行和 maxLines，两个自适应委托需要重新建立测量基准。
         mMarqueeTextDelegate.setEnabled(enabled);
         mAdaptiveTextDelegate.onContentMetricsChanged();
         mAutoFitTextDelegate.onContentMetricsChanged();

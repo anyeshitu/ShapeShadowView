@@ -7,13 +7,14 @@ import com.allynav.shape.config.IShapeDrawableStyleable;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2021/08/28
- *    desc   : RelativeLayout 的 Shape 属性值
+ *    desc   : RelativeLayout 的 Shape 属性索引映射
+ *
+ * <p>把 ShapeRelativeLayout 的具体 declare-styleable 索引适配为统一背景协议，
+ * 本类无状态且不参与子 View 的布局计算。</p>
  */
 public final class ShapeRelativeLayoutStyleable implements IShapeDrawableStyleable {
 
-    /**
-     * {@link IShapeDrawableStyleable}
-     */
+    /** 以下方法均返回 ShapeRelativeLayout 对应属性在 R.styleable 中的索引。 */
 
     @Override
     public int getShapeTypeStyleable() {

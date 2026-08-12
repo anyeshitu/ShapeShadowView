@@ -15,7 +15,10 @@ import com.allynav.shape.styleable.ShapeImageViewStyleable;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2021/07/17
- *    desc   : 支持直接定义 Shape 背景的 ImageView
+ *    desc   : 支持 Shape 背景以及状态 src、tint 的 ImageView
+ *
+ * <p>背景由 ShapeDrawableBuilder 管理，图片内容由 ImageSourceBuilder 管理，着色由
+ * ImageTintBuilder 管理。三者职责独立，可以只开启其中任意一项。</p>
  */
 public class ShapeImageView extends AppCompatImageView implements IGetShapeDrawableBuilder {
 
@@ -36,6 +39,7 @@ public class ShapeImageView extends AppCompatImageView implements IGetShapeDrawa
     public ShapeImageView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
 
+        // 背景属性使用主 TypedArray；src/tint 使用独立属性数组并由各 Builder 自行回收。
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.ShapeImageView);
         mShapeDrawableBuilder = new ShapeDrawableBuilder(this, attrs, typedArray, STYLEABLE);
         typedArray.recycle();
@@ -67,6 +71,7 @@ public class ShapeImageView extends AppCompatImageView implements IGetShapeDrawa
     @Override
     protected void drawableStateChanged() {
         super.drawableStateChanged();
+        // 每次 Android DrawableState 变化时，先换 src，再按同一状态更新 tint。
         if (mImageSourceBuilder != null) {
             mImageSourceBuilder.onDrawableStateChanged(getDrawableState());
         }

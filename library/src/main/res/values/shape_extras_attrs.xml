@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Applies the same radius to both top corners. -->
+    <!-- 同时设置左上和右上圆角，单个角属性仍可覆盖对应值。 -->
     <attr name="shape_radiusInTop" format="dimension" />
-    <!-- Applies the same radius to both bottom corners. -->
+    <!-- 同时设置左下和右下圆角。 -->
     <attr name="shape_radiusInBottom" format="dimension" />
 
+    <!-- 是否启用 Android 原生 Ripple；默认关闭。 -->
     <attr name="shape_rippleEnable" format="boolean" />
+    <!-- Ripple 颜色，未配置时使用库内低透明度黑色。 -->
     <attr name="shape_rippleColor" format="color" />
 
     <declare-styleable name="ShapeExtras">

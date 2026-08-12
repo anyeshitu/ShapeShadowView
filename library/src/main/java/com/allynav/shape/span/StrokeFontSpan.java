@@ -15,11 +15,14 @@ import com.allynav.shape.other.TextViewAttribute;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2022/05/04
- *    desc   : 支持绘制描边 Span
+ *    desc   : 先绘制外轮廓、再绘制填充色的文字描边 Span
+ *
+ * <p>描边 Paint 从 TextView 当前 Paint 复制字体和字形参数，但会清除 Shader，防止文字
+ * 渐变意外着色描边。随后先以 STROKE 绘制轮廓，再使用原 Paint 绘制实心文字。</p>
  */
 public class StrokeFontSpan extends CommonFontSpan {
 
-    /** 描边画笔 */
+    /** 独立描边画笔，避免修改 TextView 复用的原 Paint 样式和线宽。 */
     private final Paint mStrokePaint = new Paint();
 
     private int mTextStrokeColor;

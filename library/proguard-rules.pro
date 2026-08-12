@@ -1,3 +1,5 @@
+# 模块级 ProGuard 配置入口。当前库不使用反射加载实现类，暂不添加 keep 规则。
+# 以下为 Android 插件生成的参考模板，后续新增反射或 WebView JS 接口时再按需启用。
 # Add project specific ProGuard rules here.
 # By default, the flags in this file are appended to flags specified
 # in D:\SDK\Studio\sdk/tools/proguard/proguard-android.txt

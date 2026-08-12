@@ -5,6 +5,9 @@ package com.allynav.shape.drawable;
  *    github : https://github.com/getActivity/ShapeDrawable
  *    time   : 2021/08/15
  *    desc   : Shape 渐变方向
+ *
+ * <p>START/END 方向会根据 View 的布局方向转换为物理 left/right；其余方向保持
+ * 绝对几何方向。这样同一 XML 在 LTR 和 RTL 中都能得到符合语义的渐变。</p>
  */
 public enum ShapeGradientOrientation {
 

@@ -26,22 +26,33 @@ import android.widget.TextView;
 import com.allynav.shape.R;
 
 /**
- * 在有限行数内通过二分查找缩小字号，核心算法来自 XUI AutoFitTextView。
+ * 自动字号委托。
+ *
+ * <p>在调用方配置的最小/最大字号区间内通过二分查找，找到能够放入当前可用宽度和
+ * 有限 maxLines 的最大字号。核心算法适配自 XUI AutoFitTextView，并保留其常用 API
+ * 命名以降低迁移成本。</p>
+ *
+ * <p>算法只在布局取得有效宽度后运行，不修改 View 尺寸。未限制 maxLines 时不会缩放；
+ * 关闭功能会恢复调用方配置字号。与固定高度自适应同时开启时，本委托先执行。</p>
  */
 public final class AutoFitTextDelegate {
 
+    /** 默认最小字号使用 sp；二分精度保存为 px。 */
     private static final float DEFAULT_MIN_TEXT_SIZE_SP = 8f;
     private static final float DEFAULT_PRECISION = 0.5f;
 
+    /** 复用测量 Paint，避免每次布局创建临时对象。 */
     private final TextView mTextView;
     private final TextPaint mMeasurePaint = new TextPaint();
 
     private boolean mEnabled;
+    /** 调用方字号、搜索区间和精度，内部统一换算为 px。 */
     private float mConfiguredTextSize;
     private float mMinTextSize;
     private float mMaxTextSize;
     private float mPrecision;
     private boolean mHasExplicitMaxTextSize;
+    /** mApplying 阻止内部 setTextSize 被当成新的调用方配置。 */
     private boolean mApplying;
     private boolean mFitPending;
 
@@ -82,6 +93,7 @@ public final class AutoFitTextDelegate {
     }
 
     public boolean fitAfterLayout() {
+        // 布局后可用宽度和 maxLines 均已稳定，此时执行一次待处理的字号搜索。
         if (!mEnabled || (!mFitPending && mTextView.getTextSize() <= mMaxTextSize)) {
             return false;
         }
@@ -109,6 +121,7 @@ public final class AutoFitTextDelegate {
 
         float high = Math.max(0f, mMaxTextSize);
         float low = Math.min(Math.max(0f, mMinTextSize), high);
+        // 最大字号已能容纳时直接恢复最大值，否则二分查找最大可用字号。
         float targetSize = fits(text, high, availableWidth, maxLines)
                 ? high
                 : findLargestTextSize(text, low, high, availableWidth, maxLines);
@@ -179,6 +192,7 @@ public final class AutoFitTextDelegate {
 
     private float findLargestTextSize(CharSequence text, float low, float high,
             int availableWidth, int maxLines) {
+        // 每轮保留能够容纳文本的一侧，直到搜索区间小于配置精度。
         float best = low;
         while (high - low > mPrecision) {
             float middle = (low + high) / 2f;
@@ -193,6 +207,7 @@ public final class AutoFitTextDelegate {
     }
 
     private boolean fits(CharSequence text, float textSize, int availableWidth, int maxLines) {
+        // 单行直接测量宽度；多行使用 StaticLayout 同步系统换行和行距参数。
         mMeasurePaint.set(mTextView.getPaint());
         mMeasurePaint.setTextSize(textSize);
         if (maxLines == 1) {
@@ -206,6 +221,7 @@ public final class AutoFitTextDelegate {
     }
 
     private boolean applyTextSize(float textSize) {
+        // 使用 px 应用搜索结果，避免重复进行 sp/dp 单位换算。
         if (Math.abs(mTextView.getTextSize() - textSize) < 0.01f) {
             return false;
         }

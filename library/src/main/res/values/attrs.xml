@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!--
+        ShapeView 主属性表。
+        这里声明各控件共享的形状、圆角、填充、描边、渐变、文字和文本行为属性；
+        Java 中的 Styleable 适配类负责把不同 declare-styleable 映射给统一 Builder。
+        所有 dimension 最终按 px 保存，所有可选功能在没有显式配置时保持关闭或透明。
+    -->
+
     <!-- Shape 形状（默认是矩形） -->
     <attr name="shape_type">
         <!-- 矩形 -->
@@ -20,16 +27,16 @@
 
     <!-- 圆角大小 -->
     <attr name="shape_radius" format="dimension" />
-    <!-- 左上角的圆角大小 -->
+    <!-- 左上角的物理/语义圆角；同时配置时具体 left/right 属性优先。 -->
     <attr name="shape_radiusInTopLeft" format="dimension" />
     <attr name="shape_radiusInTopStart" format="dimension" />
-    <!-- 右上角的圆角大小 -->
+    <!-- 右上角的物理/语义圆角，start/end 会随 RTL 布局转换。 -->
     <attr name="shape_radiusInTopRight" format="dimension" />
     <attr name="shape_radiusInTopEnd" format="dimension" />
-    <!-- 左下角的圆角大小 -->
+    <!-- 左下角的物理/语义圆角。 -->
     <attr name="shape_radiusInBottomLeft" format="dimension" />
     <attr name="shape_radiusInBottomStart" format="dimension" />
-    <!-- 右下角的圆角大小 -->
+    <!-- 右下角的物理/语义圆角。 -->
     <attr name="shape_radiusInBottomRight" format="dimension" />
     <attr name="shape_radiusInBottomEnd" format="dimension" />
 

@@ -7,13 +7,14 @@ import com.allynav.shape.config.IShapeDrawableStyleable;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2021/08/28
- *    desc   : View 的 Shape 属性值
+ *    desc   : 普通 View 的 Shape 属性索引映射
+ *
+ * <p>这是最基础的 Shape 背景适配，只映射 View 背景能力，不包含文字、图片或
+ * CompoundButton 专属属性。</p>
  */
 public final class ShapeViewStyleable implements IShapeDrawableStyleable {
 
-    /**
-     * {@link IShapeDrawableStyleable}
-     */
+    /** 以下方法均返回 ShapeView 对应属性在 R.styleable 中的索引。 */
 
     @Override
     public int getShapeTypeStyleable() {

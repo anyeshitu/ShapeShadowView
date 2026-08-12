@@ -8,13 +8,15 @@ import com.allynav.shape.config.ITextColorStyleable;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2021/08/28
- *    desc   : Button 的 Shape 属性值
+ *    desc   : Button 的 Shape 属性索引映射
+ *
+ * <p>把 ShapeButton declare-styleable 中的背景和文字属性索引映射到统一接口，供
+ * ShapeDrawableBuilder 与 TextColorBuilder 解析。该类不读取 TypedArray，也不保存
+ * View 引用，可以作为无状态实例在控件生命周期内复用。</p>
  */
 public final class ShapeButtonStyleable implements IShapeDrawableStyleable, ITextColorStyleable {
 
-    /**
-     * {@link IShapeDrawableStyleable}
-     */
+    /** 以下方法映射 Shape 背景属性，返回值均为 R.styleable 中的实际索引。 */
 
     @Override
     public int getShapeTypeStyleable() {

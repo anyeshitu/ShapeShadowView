@@ -13,11 +13,16 @@ import com.allynav.shape.config.ITextViewAttribute;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2024/09/15
- *    desc   : 自定义设置绘制重心的 ReplacementSpan
+ *    desc   : 支持 TextView 重心和 RTL 语义的 ReplacementSpan 基类
+ *
+ * <p>ReplacementSpan 不会自动继承 TextView 的 gravity。本类通过只读属性接口把
+ * LEFT/RIGHT、START/END 和 CENTER 转换为 Layout.Alignment，供渐变、描边和组合
+ * Span 共享一致的水平对齐行为。垂直基线仍由系统字体度量决定。</p>
  */
 public abstract class AlignmentReplacementSpan extends ReplacementSpan implements AlignmentSpan {
 
     @NonNull
+    /** 实时读取目标 TextView 布局方向、gravity 和 padding 的适配器。 */
     private final ITextViewAttribute mTextAttribute;
 
     public AlignmentReplacementSpan(@NonNull ITextViewAttribute textViewAttribute) {

@@ -17,7 +17,10 @@ import com.allynav.shape.other.TextViewAttribute;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2021/08/17
- *    desc   : 支持直接定义文本渐变色的 Span
+ *    desc   : 支持水平或垂直文字渐变的 Span
+ *
+ * <p>水平渐变范围使用当前文本实际宽度，垂直渐变范围使用字体 top/bottom。颜色数组
+ * 与 positions 一并交给 LinearGradient，未配置 positions 时由系统均匀分布。</p>
  */
 public class LinearGradientFontSpan extends CommonFontSpan {
 

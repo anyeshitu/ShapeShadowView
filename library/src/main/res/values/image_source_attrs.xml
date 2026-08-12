@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--
+        ShapeImageView 状态 src 属性。
+        未配置某个状态时回退到 shape_src；shape_src 未配置时继续使用 android:src。
+        状态优先级由 ImageSourceBuilder 统一处理：disabled、pressed、checked、focused、selected。
+    -->
+    <!-- 默认图片。 -->
     <attr name="shape_src" format="reference" />
+    <!-- 按下、checked、禁用、聚焦和 selected 状态图片。 -->
     <attr name="shape_pressedSrc" format="reference" />
     <attr name="shape_checkedSrc" format="reference" />
     <attr name="shape_disabledSrc" format="reference" />

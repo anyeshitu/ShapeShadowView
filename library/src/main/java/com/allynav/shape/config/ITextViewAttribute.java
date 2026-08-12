@@ -1,10 +1,10 @@
 package com.allynav.shape.config;
 
 /**
- *    author : Android 轮子哥
- *    github : https://github.com/getActivity/ShapeView
- *    time   : 2024/09/15
- *    desc   : TextView 属性接口类
+ * 文字 Span 所需的最小 TextView 布局信息接口。
+ *
+ * <p>Span 不直接依赖完整 TextView，只读取布局方向、gravity 和左右 padding，降低
+ * 绘制逻辑与具体控件的耦合，并保证 RTL 环境中的文字对齐计算正确。</p>
  */
 public interface ITextViewAttribute {
 

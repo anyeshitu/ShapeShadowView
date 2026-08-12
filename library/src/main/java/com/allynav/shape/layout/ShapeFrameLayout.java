@@ -15,6 +15,9 @@ import com.allynav.shape.styleable.ShapeFrameLayoutStyleable;
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2021/07/17
  *    desc   : 支持直接定义 Shape 背景的 FrameLayout
+ *
+ * <p>不改变 FrameLayout 的子 View 叠放和测量规则，仅接入统一 Shape 背景、Ripple、
+ * 状态色和阴影能力。动态修改通过 getShapeDrawableBuilder 完成。</p>
  */
 public class ShapeFrameLayout extends FrameLayout implements IGetShapeDrawableBuilder {
 
@@ -33,6 +36,7 @@ public class ShapeFrameLayout extends FrameLayout implements IGetShapeDrawableBu
     public ShapeFrameLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
 
+        // Builder 复制 XML 参数后立即回收 TypedArray，再一次性应用完整背景装饰链。
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.ShapeFrameLayout);
         mShapeDrawableBuilder = new ShapeDrawableBuilder(this, attrs, typedArray, STYLEABLE);
         typedArray.recycle();

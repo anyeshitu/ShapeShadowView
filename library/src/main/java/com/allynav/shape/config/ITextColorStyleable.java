@@ -1,10 +1,10 @@
 package com.allynav.shape.config;
 
 /**
- *    author : Android 轮子哥
- *    github : https://github.com/getActivity/ShapeView
- *    time   : 2021/08/28
- *    desc   : 文本颜色 View 属性收集接口
+ * 文本颜色相关属性索引协议。
+ *
+ * <p>统一映射默认/状态文字色、文字渐变和文字描边属性，使 TextView、Button、
+ * EditText 与 CompoundButton 可以共用 {@code TextColorBuilder}。</p>
  */
 public interface ITextColorStyleable {
 

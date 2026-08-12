@@ -3,10 +3,9 @@ package com.allynav.shape.config;
 import com.allynav.shape.builder.TextColorBuilder;
 
 /**
- *    author : Android 轮子哥
- *    github : https://github.com/getActivity/ShapeView
- *    time   : 2023/07/22
- *    desc   : 获取 TextColorBuilder 接口
+ * 对外暴露 {@link TextColorBuilder} 的能力接口。
+ *
+ * <p>文本类 Shape 控件通过本接口提供统一的状态色、渐变和文字描边动态配置入口。</p>
  */
 public interface IGetTextColorBuilder {
 

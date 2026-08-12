@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--
+        任意 Drawable/颜色状态背景。
+        自定义背景会按当前 Shape 圆角或椭圆轮廓裁剪；未配置状态回退到 shape_background。
+        disabled 在状态重叠时优先于 pressed、checked、focused 和 selected。
+    -->
     <attr name="shape_background" format="reference|color" />
     <attr name="shape_pressedBackground" format="reference|color" />
     <attr name="shape_checkedBackground" format="reference|color" />
@@ -16,6 +21,9 @@
         <attr name="shape_selectedBackground" />
     </declare-styleable>
 
+    <!--
+        状态文本内容。未配置某个状态时显示 android:text；业务动态 setText 会更新默认文本。
+    -->
     <attr name="shape_textPressed" format="string" />
     <attr name="shape_textChecked" format="string" />
     <attr name="shape_textDisabled" format="string" />

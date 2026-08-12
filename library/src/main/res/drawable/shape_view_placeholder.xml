@@ -1,2 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    CompoundButton 默认图标占位资源。
+    Builder 识别到该资源时会读取控件当前 android:button，而不是显示这个空 Shape。
+-->
 <shape/>

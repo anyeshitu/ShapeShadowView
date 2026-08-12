@@ -14,6 +14,9 @@ import com.allynav.shape.styleable.ShapeConstraintLayoutStyleable;
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2021/07/17
  *    desc   : 支持直接定义 Shape 背景的 ConstraintLayout
+ *
+ * <p>保留 ConstraintLayout 原有约束布局行为，只增加 Shape 背景解析和动态 Builder
+ * 入口。构造时读取并回收 TypedArray，随后立即应用 XML 背景配置。</p>
  */
 public class ShapeConstraintLayout extends ConstraintLayout implements IGetShapeDrawableBuilder {
 
@@ -32,6 +35,7 @@ public class ShapeConstraintLayout extends ConstraintLayout implements IGetShape
     public ShapeConstraintLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
 
+        // TypedArray 只在构造期间使用，Builder 会复制所需值，不持有资源数组。
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.ShapeConstraintLayout);
         mShapeDrawableBuilder = new ShapeDrawableBuilder(this, attrs, typedArray, STYLEABLE);
         typedArray.recycle();

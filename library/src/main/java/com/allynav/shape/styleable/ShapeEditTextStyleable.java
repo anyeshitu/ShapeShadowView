@@ -8,13 +8,14 @@ import com.allynav.shape.config.ITextColorStyleable;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2021/08/28
- *    desc   : EditText 的 Shape 属性值
+ *    desc   : EditText 的 Shape 和文字属性索引映射
+ *
+ * <p>为 ShapeEditText 同时映射背景与文字颜色属性，使输入控件沿用与 TextView 相同
+ * 的状态文字色、渐变和描边能力。该类无状态，不负责读取或回收 TypedArray。</p>
  */
 public final class ShapeEditTextStyleable implements IShapeDrawableStyleable, ITextColorStyleable {
 
-    /**
-     * {@link IShapeDrawableStyleable}
-     */
+    /** 以下方法映射 Shape 背景属性，返回 R.styleable 中的实际索引。 */
 
     @Override
     public int getShapeTypeStyleable() {

@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!--
+        通过空 Shape 占位让 Builder 能区分“沿用系统/主题按钮图标”和“调用方明确清空图标”。
+        构造时不会真正显示占位资源，而是取回 CompoundButton 当前 android:button。
+    -->
     <style name="ShapeCheckBoxStyle" parent="Widget.AppCompat.CompoundButton.CheckBox">
         <item name="shape_buttonDrawable">@drawable/shape_view_placeholder</item>
     </style>

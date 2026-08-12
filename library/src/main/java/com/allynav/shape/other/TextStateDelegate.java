@@ -11,15 +11,23 @@ import androidx.annotation.Nullable;
 
 import com.allynav.shape.R;
 
-/** Applies optional text content for standard Android drawable states. */
+/**
+ * 根据 Android DrawableState 切换 TextView 文本内容。
+ *
+ * <p>支持默认、按下、checked、禁用、聚焦和 selected 文本。未配置某个状态时回退到
+ * 默认文本。通过 Java 调用 setText 会更新默认文本，内部切换状态文本时使用 applying
+ * 标记防止递归覆盖默认值。</p>
+ */
 public final class TextStateDelegate {
 
+    /** 状态解析顺序；禁用状态在 resolveStateText 中优先匹配。 */
     private static final int[] STATE_PRESSED = {android.R.attr.state_pressed};
     private static final int[] STATE_CHECKED = {android.R.attr.state_checked};
     private static final int[] STATE_DISABLED = {-android.R.attr.state_enabled};
     private static final int[] STATE_FOCUSED = {android.R.attr.state_focused};
     private static final int[] STATE_SELECTED = {android.R.attr.state_selected};
 
+    /** 目标控件、默认文本和各状态可选文本。 */
     private final TextView mView;
     private CharSequence mDefaultText;
     private CharSequence mPressedText;
@@ -27,6 +35,7 @@ public final class TextStateDelegate {
     private CharSequence mDisabledText;
     private CharSequence mFocusedText;
     private CharSequence mSelectedText;
+    /** 内部 setText 重入保护，避免状态文本被记录成新的默认文本。 */
     private boolean mApplyingState;
 
     public TextStateDelegate(@NonNull TextView view, @Nullable AttributeSet attrs) {
@@ -52,6 +61,7 @@ public final class TextStateDelegate {
     }
 
     public void refresh() {
+        // 只在目标文本变化时调用 setText，减少无效布局和 TextWatcher 回调。
         CharSequence stateText = resolveStateText(mView.getDrawableState());
         CharSequence targetText = stateText != null ? stateText : mDefaultText;
         if (TextUtils.equals(mView.getText(), targetText)) {
@@ -67,6 +77,7 @@ public final class TextStateDelegate {
 
     @Nullable
     private CharSequence resolveStateText(int[] stateSet) {
+        // disabled 优先，随后处理 pressed、checked、focused 和 selected。
         if (mDisabledText != null && StateSet.stateSetMatches(STATE_DISABLED, stateSet)) {
             return mDisabledText;
         }

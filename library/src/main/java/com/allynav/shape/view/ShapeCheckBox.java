@@ -21,7 +21,10 @@ import com.allynav.shape.styleable.ShapeCheckBoxStyleable;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2021/07/17
- *    desc   : 支持直接定义 Shape 背景的 CheckBox
+ *    desc   : 支持 Shape 背景、文字和按钮状态图标的 CheckBox
+ *
+ * <p>除了背景与文字能力，还通过 ButtonDrawableBuilder 处理 checked、pressed、
+ * disabled 等按钮图标。Android 的 CompoundButton 选中逻辑保持不变。</p>
  */
 public class ShapeCheckBox extends AppCompatCheckBox implements
         IGetShapeDrawableBuilder, IGetTextColorBuilder, IGetButtonDrawableBuilder,
@@ -45,6 +48,7 @@ public class ShapeCheckBox extends AppCompatCheckBox implements
     public ShapeCheckBox(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
 
+        // 使用库默认样式补齐 android:button，占位资源会回退到控件原始图标。
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.ShapeCheckBox, 0, R.style.ShapeCheckBoxStyle);
         mShapeDrawableBuilder = new ShapeDrawableBuilder(this, attrs, typedArray, STYLEABLE);
         mTextColorBuilder = new TextColorBuilder(this, typedArray, STYLEABLE);
@@ -73,6 +77,7 @@ public class ShapeCheckBox extends AppCompatCheckBox implements
         if (mButtonDrawableBuilder == null) {
             return;
         }
+        // 同步外部动态设置，避免下次 intoButtonDrawable 又恢复旧默认图标。
         mButtonDrawableBuilder.setButtonDrawable(drawable);
     }
 

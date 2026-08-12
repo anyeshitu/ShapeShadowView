@@ -6,10 +6,11 @@ import android.graphics.drawable.StateListDrawable;
 import java.util.HashMap;
 
 /**
- *    author : Android 轮子哥
- *    github : https://github.com/getActivity/ShapeView
- *    time   : 2022/04/23
- *    desc   : 基于 StateListDrawable 类进行扩展
+ * 可按语义存取状态 Drawable 的 StateListDrawable。
+ *
+ * <p>系统 StateListDrawable 只能追加状态，无法直接取回默认或某个状态 Drawable。
+ * 本类在添加状态时同步保存引用，供 ShapeDrawableBuilder 动态重建背景时提取默认项。
+ * 状态匹配顺序仍由 addState 调用顺序决定。</p>
  */
 public class ExtendStateListDrawable extends StateListDrawable {
 
@@ -20,10 +21,12 @@ public class ExtendStateListDrawable extends StateListDrawable {
    private static final int[] STATE_FOCUSED = new int[]{android.R.attr.state_focused};
    private static final int[] STATE_SELECTED = new int[]{android.R.attr.state_selected};
 
+   /** 使用内部固定状态数组作为 key，因此按数组引用即可稳定取回对应 Drawable。 */
    private final HashMap<int[], Drawable> mDrawableMap = new HashMap<>();
 
    @Override
    public void addState(int[] stateSet, Drawable drawable) {
+      // 先交给系统建立状态表，再保存非空 Drawable 供语义 getter 使用。
       super.addState(stateSet, drawable);
       if (drawable == null) {
          return;

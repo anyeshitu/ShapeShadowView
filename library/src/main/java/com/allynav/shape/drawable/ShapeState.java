@@ -6,19 +6,23 @@ import android.graphics.drawable.Drawable;
 import android.view.Gravity;
 
 /**
- *    author : Android 轮子哥
- *    github : https://github.com/getActivity/ShapeDrawable
- *    time   : 2021/08/15
- *    desc   : ShapeDrawable 参数构建
+ * ShapeDrawable 的可复制 ConstantState 参数快照。
+ *
+ * <p>这里保存颜色、渐变、圆角、描边、环形、尺寸和旧版阴影等资源状态；Paint、Path
+ * 和位图缓存属于具体 Drawable 实例，不放入 ConstantState。复制构造函数会复制数组，
+ * 避免 mutate 后不同 Drawable 共享可变配置。</p>
  */
 public class ShapeState extends Drawable.ConstantState {
 
+    /** Android 资源配置变化标记。 */
     public int changingConfigurations;
+    /** Shape 几何和渐变类型。 */
     @ShapeTypeLimit
     public int shapeType = ShapeType.RECTANGLE;
     @ShapeGradientTypeLimit
     public int solidGradientType = ShapeGradientType.LINEAR_GRADIENT;
     public ShapeGradientOrientation solidGradientOrientation = ShapeGradientOrientation.TOP_TO_BOTTOM;
+    /** 填充/描边渐变颜色数组及对应位置。 */
     public int[] solidColors;
     public int[] strokeColors;
     public int[] tempSolidColors; // no need to copy
@@ -32,7 +36,8 @@ public class ShapeState extends Drawable.ConstantState {
     public int strokeColor;
     public float strokeDashSize;
     public float strokeDashGap;
-    public float radius;    // use this if mRadiusArray is null
+    /** 统一圆角值；radiusArray 不为空时使用四角独立值。 */
+    public float radius;
     public float[] radiusArray;
     public Rect padding;
     public int width = -1;
@@ -48,6 +53,7 @@ public class ShapeState extends Drawable.ConstantState {
     public boolean useLevelForShape;
     public boolean opaque;
 
+    /** 兼容 ShapeDrawable 直接阴影 API 的参数；ShapeView 默认由 ShadowDrawable 承载。 */
     public int shadowSize;
     public int shadowColor;
     public int shadowOffsetX;

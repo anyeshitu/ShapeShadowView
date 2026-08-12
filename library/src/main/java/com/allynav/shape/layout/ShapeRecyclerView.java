@@ -14,6 +14,9 @@ import com.allynav.shape.styleable.ShapeRecyclerViewStyleable;
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2021/07/17
  *    desc   : 支持直接定义 Shape 背景的 RecyclerView
+ *
+ * <p>Adapter、LayoutManager、回收池和滚动逻辑全部沿用 RecyclerView，只增强列表容器
+ * 背景。阴影会通过 padding inset 为列表内容预留绘制空间。</p>
  */
 public class ShapeRecyclerView extends RecyclerView implements IGetShapeDrawableBuilder {
 
@@ -32,6 +35,7 @@ public class ShapeRecyclerView extends RecyclerView implements IGetShapeDrawable
     public ShapeRecyclerView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
 
+        // Builder 复制属性后立即回收 TypedArray，避免跨生命周期持有资源对象。
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.ShapeRecyclerView);
         mShapeDrawableBuilder = new ShapeDrawableBuilder(this, attrs, typedArray, STYLEABLE);
         typedArray.recycle();

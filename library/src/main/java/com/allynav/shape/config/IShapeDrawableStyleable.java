@@ -1,10 +1,14 @@
 package com.allynav.shape.config;
 
 /**
- *    author : Android 轮子哥
- *    github : https://github.com/getActivity/ShapeView
- *    time   : 2021/08/28
- *    desc   : ShapeDrawable View 属性收集接口
+ * Shape 背景属性索引协议。
+ *
+ * <p>每种控件的 declare-styleable 索引不同，具体 Styleable 适配类把它们映射到本接口。
+ * {@code ShapeDrawableBuilder} 只依赖统一协议，即可复用形状、圆角、渐变、描边、虚线、
+ * 阴影和环形等解析逻辑。</p>
+ *
+ * <p>扩展属性的 default 方法返回 0，表示当前控件没有声明该能力；构建器读取前会先
+ * 检查索引是否有效。</p>
  */
 public interface IShapeDrawableStyleable {
 

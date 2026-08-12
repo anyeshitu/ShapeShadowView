@@ -1,12 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--
+        ShadowLayout 风格的扩展阴影属性。
+        shape_shadowSize/Color/Offset 在主 attrs.xml 声明；这里补充扩散、对称、隐藏边和
+        位图缓存缩放。阴影默认关闭，shape_shadowSize 大于 0 且 hidden=false 时启用。
+    -->
+    <!-- 完全隐藏阴影，但保留其他配置供动态恢复。 -->
     <attr name="shape_shadowHidden" format="boolean" />
+    <!-- 在模糊半径外额外扩张投影轮廓。 -->
     <attr name="shape_shadowSpread" format="dimension" />
+    <!-- 对称模式让左右、上下分别使用相同 inset。 -->
     <attr name="shape_shadowSymmetry" format="boolean" />
+    <!-- 单独裁掉某一边阴影，不影响内容 Drawable。 -->
     <attr name="shape_shadowHiddenLeft" format="boolean" />
     <attr name="shape_shadowHiddenTop" format="boolean" />
     <attr name="shape_shadowHiddenRight" format="boolean" />
     <attr name="shape_shadowHiddenBottom" format="boolean" />
+    <!-- 阴影缓存位图缩放比例，Java 会限制在 0.25 到 1.0。 -->
     <attr name="shape_shadowBitmapScale" format="float" />
 
     <declare-styleable name="ShapeShadow">

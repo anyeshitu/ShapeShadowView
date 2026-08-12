@@ -25,13 +25,18 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 /**
- *    author : Android 轮子哥
- *    github : https://github.com/getActivity/ShapeDrawable
- *    time   : 2021/08/14
- *    desc   : 在 {@link android.graphics.drawable.GradientDrawable} 的基础上改造
+ * 可配置 Shape 背景 Drawable。
+ *
+ * <p>在 GradientDrawable 的基础上扩展四角圆角、矩形/椭圆/线/环形、线性/径向/扫描
+ * 渐变、状态颜色、描边虚线、level 进度和旧版直接阴影绘制。ShapeDrawableBuilder 会
+ * 负责把 XML/Java 参数写入本类，并在需要时再由外层 ShadowDrawable 提供缓存阴影。</p>
+ *
+ * <p>绘制过程会缓存当前 Path 和渐变矩形；bounds、level、布局方向或 Shape 参数变化
+ * 时标记脏数据，下一次 draw 再按最新尺寸重建，避免在 setter 中依赖尚未确定的边界。</p>
  */
 public class ShapeDrawable extends Drawable {
 
+    /** 可复制的参数状态；其余 Paint、Path 和缓存对象属于当前 Drawable 实例。 */
     private ShapeState mShapeState;
 
     private final Paint mSolidPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -42,6 +47,7 @@ public class ShapeDrawable extends Drawable {
     private int mAlpha = 0xFF;  // modified by the caller
     private boolean mDither;
 
+    /** 普通矩形/椭圆/线的绘制路径，以及环形专用路径。 */
     private final Path mPath = new Path();
     private final RectF mRect = new RectF();
 
@@ -49,7 +55,8 @@ public class ShapeDrawable extends Drawable {
     private final Path mShadowPath = new Path();
 
     private Paint mLayerPaint;    // internal, used if we use saveLayer()
-    private boolean mRectDirty;   // internal state
+    /** bounds 或关键参数变化后，下一次绘制重新计算 mRect 和渐变 Shader。 */
+    private boolean mRectDirty;
     private boolean mMutated;
     private Path mRingPath;
     private boolean mPathDirty = true;
@@ -443,6 +450,7 @@ public class ShapeDrawable extends Drawable {
     @SuppressLint("WrongConstant")
     @Override
     public void draw(@NonNull Canvas canvas) {
+        // 先确认绘制区域和渐变，再按填充、描边、旧版阴影的顺序绘制 Shape。
         if (!ensureValidRect()) {
             // nothing to draw
             return;
@@ -743,6 +751,7 @@ public class ShapeDrawable extends Drawable {
     }
 
     private Path buildRing(ShapeState shapeState) {
+        // 环形支持固定内半径/厚度和 level 部分圆环，结果缓存到 mRingPath。
         if (mRingPath != null && (!shapeState.useLevelForShape || !mPathDirty)) {
             return mRingPath;
         }
@@ -819,6 +828,7 @@ public class ShapeDrawable extends Drawable {
      * @return true if the resulting rectangle is not empty, false otherwise
      */
     private boolean ensureValidRect() {
+        // 根据 Drawable bounds、描边宽度和直接阴影参数计算内容矩形及渐变坐标。
         if (!mRectDirty) {
             return !mRect.isEmpty();
         }
@@ -974,6 +984,7 @@ public class ShapeDrawable extends Drawable {
     @NonNull
     @Override
     public Drawable mutate() {
+        // 首次 mutate 深复制 ConstantState，避免共享资源 Drawable 之间互相修改。
         if (!mMutated && super.mutate() == this) {
             mShapeState = new ShapeState(mShapeState);
             initializeWithState(mShapeState);
@@ -983,6 +994,7 @@ public class ShapeDrawable extends Drawable {
     }
 
     private void initializeWithState(ShapeState state) {
+        // 从状态快照初始化 Paint 默认值；渐变和描边参数由后续尺寸计算继续完善。
         if (state.hasSolidColor) {
             mSolidPaint.setColor(state.solidColor);
         } else if (state.solidColors == null) {

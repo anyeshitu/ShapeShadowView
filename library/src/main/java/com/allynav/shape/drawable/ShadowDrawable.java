@@ -14,22 +14,28 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 /**
- * Draws a cached bitmap shadow behind any ShapeView background drawable.
+ * 为任意 ShapeView 背景绘制真实的位图模糊阴影。
  *
- * <p>The inset calculation and low-resolution bitmap cache are inspired by ShadowLayout. The
- * actual mask is produced from the wrapped drawable, so selectors, gradients, ovals and custom
- * corner radii all share the same shadow implementation.</p>
+ * <p>阴影边距计算和低分辨率位图缓存思路参考 ShadowLayout。阴影蒙版直接从被包装的
+ * Drawable 绘制结果生成，因此状态选择器、渐变、椭圆、自定义圆角和 Ripple 都能共享
+ * 同一套阴影实现。</p>
+ *
+ * <p>内容 Drawable 绘制在预留 inset 后的区域，阴影绘制在外部区域。只有边界、状态、
+ * level、alpha 或内容发生有效变化时才重建缓存，普通 invalidate 不重复执行模糊计算。</p>
  */
 public final class ShadowDrawable extends Drawable implements Drawable.Callback {
 
+    /** 缓存位图缩放范围；过小会失真，超过 1 不再带来可见质量收益。 */
     private static final float MIN_BITMAP_SCALE = 0.25f;
     private static final float MAX_BITMAP_SCALE = 1f;
 
+    /** 被包装的最终内容和绘制阴影缓存所需的复用对象。 */
     private final Drawable mContentDrawable;
     private final Paint mBitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final Rect mContentBounds = new Rect();
     private final Rect mShadowInsets = new Rect();
 
+    /** 阴影几何、颜色、隐藏边和缓存质量参数。 */
     private final float mShadowRadius;
     private final float mShadowOffsetX;
     private final float mShadowOffsetY;
@@ -42,6 +48,7 @@ public final class ShadowDrawable extends Drawable implements Drawable.Callback 
     private final boolean mShadowHiddenBottom;
     private final float mBitmapScale;
 
+    /** 缓存位图及其失效状态；mRenderingShadow 用于阻止内部临时绘制递归失效。 */
     private Bitmap mShadowBitmap;
     private boolean mShadowDirty = true;
     private boolean mRenderingShadow;
@@ -86,6 +93,7 @@ public final class ShadowDrawable extends Drawable implements Drawable.Callback 
     }
 
     private void updateShadowInsets() {
+        // 对称模式两侧使用相同 inset；非对称模式按 offset 方向只扩展需要的一侧。
         float extent = mShadowRadius + mShadowSpread;
         if (mShadowSymmetry) {
             int horizontal = (int) Math.ceil(extent + Math.abs(mShadowOffsetX));
@@ -107,6 +115,7 @@ public final class ShadowDrawable extends Drawable implements Drawable.Callback 
 
     @Override
     protected void onBoundsChange(@NonNull Rect bounds) {
+        // 从总边界扣除阴影 inset 后得到真正交给内容 Drawable 的区域。
         int left = bounds.left + mShadowInsets.left;
         int top = bounds.top + mShadowInsets.top;
         int right = bounds.right - mShadowInsets.right;
@@ -130,6 +139,7 @@ public final class ShadowDrawable extends Drawable implements Drawable.Callback 
 
     @Override
     public void draw(@NonNull Canvas canvas) {
+        // 先绘制阴影缓存，再绘制清晰内容；隐藏边通过 clipRect 精确裁掉。
         ensureShadowBitmap();
         Rect bounds = getBounds();
         if (mShadowBitmap != null && !bounds.isEmpty()) {
@@ -147,6 +157,7 @@ public final class ShadowDrawable extends Drawable implements Drawable.Callback 
     }
 
     private void ensureShadowBitmap() {
+        // 缓存仍有效、边界为空或阴影完全透明时不做任何位图分配。
         Rect bounds = getBounds();
         if (!mShadowDirty || bounds.isEmpty() || Color.alpha(mShadowColor) == 0) {
             return;
@@ -164,6 +175,7 @@ public final class ShadowDrawable extends Drawable implements Drawable.Callback 
             maskCanvas.scale(mBitmapScale, mBitmapScale);
             maskCanvas.translate(-bounds.left, -bounds.top);
 
+            // Ripple 动画不能作为稳定阴影源，使用其固定 Shape 蒙版生成阴影。
             Drawable shadowSource = mContentDrawable instanceof ShapeRippleDrawable ?
                     ((ShapeRippleDrawable) mContentDrawable).getShadowMaskDrawable() :
                     mContentDrawable;
@@ -172,6 +184,7 @@ public final class ShadowDrawable extends Drawable implements Drawable.Callback 
             int spread = (int) Math.ceil(mShadowSpread);
             casterBounds.inset(-spread, -spread);
 
+            // 临时改写 bounds/alpha 只用于离屏蒙版，finally 中必须完整恢复。
             mRenderingShadow = true;
             int originalAlpha = shadowSource.getAlpha();
             try {
@@ -184,6 +197,7 @@ public final class ShadowDrawable extends Drawable implements Drawable.Callback 
                 mRenderingShadow = false;
             }
 
+            // 在缩小位图上提取 alpha 并模糊，最后绘制时由 FILTER_BITMAP_FLAG 平滑放大。
             Paint blurPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             blurPaint.setMaskFilter(new BlurMaskFilter(
                     Math.max(0.5f, mShadowRadius * mBitmapScale),
@@ -213,6 +227,7 @@ public final class ShadowDrawable extends Drawable implements Drawable.Callback 
     }
 
     private void markShadowDirty() {
+        // 参数或内容变化后立即释放旧缓存，降低失效位图的内存驻留时间。
         mShadowDirty = true;
         recycleShadowBitmap();
     }
@@ -257,6 +272,7 @@ public final class ShadowDrawable extends Drawable implements Drawable.Callback 
 
     @Override
     protected boolean onStateChange(int[] state) {
+        // Ripple 只改变动画层，不应每一帧都重新生成昂贵的模糊位图。
         boolean changed = mContentDrawable.setState(state);
         if (changed && !isRippleContent()) {
             markShadowDirty();
@@ -319,6 +335,7 @@ public final class ShadowDrawable extends Drawable implements Drawable.Callback 
 
     @Override
     public void invalidateDrawable(@NonNull Drawable who) {
+        // 内容失效向上传递；离屏绘制期间的内部失效不递归处理。
         if (!mRenderingShadow) {
             if (!isRippleContent()) {
                 markShadowDirty();

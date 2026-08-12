@@ -9,15 +9,21 @@ import com.allynav.shape.R;
 import com.allynav.shape.config.ICompoundButtonStyleable;
 
 /**
- *    author : Android 轮子哥
- *    github : https://github.com/getActivity/ShapeView
- *    time   : 2021/08/28
- *    desc   : ButtonDrawable  构建类
+ * CompoundButton 按钮图标构建器。
+ *
+ * <p>负责读取 CheckBox、RadioButton 的默认、按下、选中、禁用、聚焦和 selected
+ * 状态图标，并组装成 {@link StateListDrawable}。未配置某个状态时会自然回退到默认
+ * 图标，因此调用方可以只覆盖需要的状态。</p>
+ *
+ * <p>Java 动态设置完成后必须调用 {@link #intoButtonDrawable()}，才会把最新状态列表
+ * 应用到目标控件。</p>
  */
 public final class ButtonDrawableBuilder {
 
+    /** 接收最终按钮图标状态列表的目标控件。 */
     private final CompoundButton mCompoundButton;
 
+    /** 各 Android DrawableState 对应的图标；null 表示未配置该状态。 */
     private Drawable mButtonDrawable;
     private Drawable mButtonPressedDrawable;
     private Drawable mButtonCheckedDrawable;
@@ -28,6 +34,7 @@ public final class ButtonDrawableBuilder {
     public ButtonDrawableBuilder(CompoundButton compoundButton, TypedArray typedArray, ICompoundButtonStyleable styleable) {
         mCompoundButton = compoundButton;
 
+        // 占位资源表示继续使用控件当前的 android:button，而不是把图标清空。
         if (typedArray.hasValue(styleable.getButtonDrawableStyleable())) {
             if (typedArray.getResourceId(styleable.getButtonDrawableStyleable(), 0) != R.drawable.shape_view_placeholder) {
                 mButtonDrawable = typedArray.getDrawable(styleable.getButtonDrawableStyleable());
@@ -143,6 +150,7 @@ public final class ButtonDrawableBuilder {
             return;
         }
 
+        // 特殊状态从高优先级到低优先级添加，默认项始终放在最后兜底。
         StateListDrawable drawable = new StateListDrawable();
         if (mButtonPressedDrawable != null) {
             drawable.addState(new int[]{android.R.attr.state_pressed}, mButtonPressedDrawable);

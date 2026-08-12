@@ -21,7 +21,10 @@ import com.allynav.shape.styleable.ShapeRadioButtonStyleable;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2021/07/17
- *    desc   : 支持直接定义 Shape 背景的 RadioButton
+ *    desc   : 支持 Shape 背景、文字和按钮状态图标的 RadioButton
+ *
+ * <p>checked 状态可同时驱动背景、文字色、状态文本和按钮图标。互斥选择仍由父
+ * RadioGroup 负责，本控件不改变 RadioButton 的事件语义。</p>
  */
 public class ShapeRadioButton extends AppCompatRadioButton implements
         IGetShapeDrawableBuilder, IGetTextColorBuilder, IGetButtonDrawableBuilder,
@@ -45,6 +48,7 @@ public class ShapeRadioButton extends AppCompatRadioButton implements
     public ShapeRadioButton(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
 
+        // 使用库默认样式保留系统 radioButtonStyle，并在 Builder 初始化后回收数组。
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.ShapeRadioButton, 0, R.style.ShapeRadioButtonStyle);
         mShapeDrawableBuilder = new ShapeDrawableBuilder(this, attrs, typedArray, STYLEABLE);
         mTextColorBuilder = new TextColorBuilder(this, typedArray, STYLEABLE);
@@ -73,6 +77,7 @@ public class ShapeRadioButton extends AppCompatRadioButton implements
         if (mButtonDrawableBuilder == null) {
             return;
         }
+        // 同步外部动态设置，后续重建状态图标时以新 Drawable 作为默认值。
         mButtonDrawableBuilder.setButtonDrawable(drawable);
     }
 

@@ -25,10 +25,14 @@ import com.allynav.shape.span.LinearGradientFontSpan;
 import com.allynav.shape.span.StrokeFontSpan;
 
 /**
- *    author : Android 轮子哥
- *    github : https://github.com/getActivity/ShapeView
- *    time   : 2021/08/28
- *    desc   : TextColor 构建类
+ * TextView 文字颜色、状态颜色、渐变和描边构建器。
+ *
+ * <p>普通颜色和各 DrawableState 颜色通过 {@link ColorStateList} 应用；渐变使用
+ * Paint Shader 在绘制阶段设置；描边使用 Span 保留原文字布局。渐变和描边可独立
+ * 开启，也可以与 Shape 背景、阴影共同使用。</p>
+ *
+ * <p>Java 修改颜色后调用 {@link #intoTextColor()} 应用。渐变依赖控件实际尺寸，
+ * 因此由宿主控件在 {@code onDraw} 中调用 {@link #onDraw(View, Canvas, Paint)} 更新。</p>
  */
 public final class TextColorBuilder {
 
@@ -37,9 +41,11 @@ public final class TextColorBuilder {
     /** 垂直渐变方向 */
     public static final int GRADIENT_ORIENTATION_VERTICAL = LinearLayout.VERTICAL;
 
+    /** 目标 TextView 与供文字 Span 使用的最小布局属性适配器。 */
     private final TextView mTextView;
     private final ITextViewAttribute mTextViewAttribute;
 
+    /** 默认及 DrawableState 对应的文字颜色。 */
     private int mTextColor;
     private Integer mTextPressedColor;
     private Integer mTextCheckedColor;
@@ -47,9 +53,11 @@ public final class TextColorBuilder {
     private Integer mTextFocusedColor;
     private Integer mTextSelectedColor;
 
+    /** 文字渐变颜色和方向。 */
     private int[] mTextGradientColors;
     private int mTextGradientOrientation;
 
+    /** 文字描边颜色和像素宽度。 */
     private int mTextStrokeColor;
     private int mTextStrokeSize;
 
@@ -229,6 +237,7 @@ public final class TextColorBuilder {
     }
 
     public SpannableStringBuilder buildStrokeFontSpannable(CharSequence text) {
+        // 保留输入文本内容，并在完整范围叠加一个描边 Span。
         SpannableStringBuilder builder = new SpannableStringBuilder(text);
 
         StrokeFontSpan strokeFontSpan = null;
@@ -248,6 +257,7 @@ public final class TextColorBuilder {
     }
 
     public ColorStateList buildColorState() {
+        // 特殊状态先加入，默认颜色最后加入，确保状态列表按预期匹配。
         if (mTextPressedColor == null &&
                 mTextCheckedColor == null &&
                 mTextDisabledColor == null &&
@@ -307,6 +317,7 @@ public final class TextColorBuilder {
     }
 
     public void intoTextColor() {
+        // 状态色立即应用；描边转为 Span；渐变在 onDraw 获取实际尺寸后应用。
         if (isTextGradientColorsEnable()) {
             // 如果 TextView 设置了不透明，那么就强制给它设置成不透明的
             mTextColor = mTextColor | 0xFF000000;
@@ -322,6 +333,7 @@ public final class TextColorBuilder {
     }
 
     public void onDraw(@NonNull View view, @NonNull Canvas canvas, Paint paint) {
+        // RTL 水平渐变反转颜色顺序，使 start/end 语义跟随布局方向。
         if (isTextGradientColorsEnable()) {
             int[] textGradientColors;
             if (mTextGradientOrientation == GRADIENT_ORIENTATION_HORIZONTAL &&
@@ -333,6 +345,7 @@ public final class TextColorBuilder {
             LinearGradient linearGradient = getLinearGradient(view, canvas, mTextGradientOrientation, textGradientColors);
             paint.setShader(linearGradient);
         } else {
+            // 动态关闭渐变时清理旧 Shader，避免 Paint 沿用上一次配置。
             Shader shader = paint.getShader();
             if (shader instanceof LinearGradient) {
                 paint.setShader(null);
@@ -346,6 +359,7 @@ public final class TextColorBuilder {
     private static LinearGradient getLinearGradient(@NonNull View view, @NonNull Canvas canvas,
                                                     int textGradientOrientation,
                                                     @Nullable int[] textGradientColors) {
+        // 渐变端点使用扣除 padding 后的实际绘制区域。
         LinearGradient linearGradient;
         if (textGradientOrientation == GRADIENT_ORIENTATION_VERTICAL) {
             float x = view.getPaddingLeft();

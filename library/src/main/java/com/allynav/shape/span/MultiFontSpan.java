@@ -13,13 +13,17 @@ import java.util.List;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2022/05/04
- *    desc   : 支持定义多个类型的 AlignmentReplacementSpan
+ *    desc   : 在同一文字范围叠加多个 ReplacementSpan 的组合容器
+ *
+ * <p>测量阶段取所有子 Span 返回宽度的最大值，绘制阶段按传入顺序逐个执行，适合把
+ * 描边、渐变等效果叠加在同一段文本上。调用方应保证各 Span 使用兼容字体度量。</p>
  */
 public class MultiFontSpan extends AlignmentReplacementSpan {
 
     /** 测量的文本宽度 */
     private float mMeasureTextWidth;
 
+    /** 保留调用顺序，后加入的 Span 会绘制在先加入效果之上。 */
     private final List<ReplacementSpan> mReplacementSpans;
 
     public MultiFontSpan(ITextViewAttribute textViewAttribute, ReplacementSpan... replacementSpans) {

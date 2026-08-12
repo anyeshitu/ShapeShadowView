@@ -7,13 +7,14 @@ import com.allynav.shape.config.IShapeDrawableStyleable;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2021/09/07
- *    desc   : RadioGroup 的 Shape 属性值
+ *    desc   : RadioGroup 的 Shape 属性索引映射
+ *
+ * <p>让 ShapeRadioGroup 作为布局容器复用统一 Shape 背景构建逻辑；子 RadioButton
+ * 的 checked 管理仍由 Android RadioGroup 自身负责。</p>
  */
 public final class ShapeRadioGroupStyleable implements IShapeDrawableStyleable {
 
-    /**
-     * {@link IShapeDrawableStyleable}
-     */
+    /** 以下方法均返回 ShapeRadioGroup 对应属性在 R.styleable 中的索引。 */
 
     @Override
     public int getShapeTypeStyleable() {

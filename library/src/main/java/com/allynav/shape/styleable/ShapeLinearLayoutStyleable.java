@@ -7,13 +7,14 @@ import com.allynav.shape.config.IShapeDrawableStyleable;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2021/08/28
- *    desc   : LinearLayout 的 Shape 属性值
+ *    desc   : LinearLayout 的 Shape 属性索引映射
+ *
+ * <p>将 ShapeLinearLayout 的属性索引适配为统一背景协议。布局方向由目标 View 在
+ * 构建时提供，因此 start/end 圆角在 RTL 环境中仍能正确转换。</p>
  */
 public final class ShapeLinearLayoutStyleable implements IShapeDrawableStyleable {
 
-    /**
-     * {@link IShapeDrawableStyleable}
-     */
+    /** 以下方法均返回 ShapeLinearLayout 对应属性在 R.styleable 中的索引。 */
 
     @Override
     public int getShapeTypeStyleable() {

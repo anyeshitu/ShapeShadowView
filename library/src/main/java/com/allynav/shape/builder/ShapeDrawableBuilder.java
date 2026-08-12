@@ -27,26 +27,35 @@ import com.allynav.shape.drawable.ShapeTypeLimit;
 import com.allynav.shape.other.ExtendStateListDrawable;
 
 /**
- *    author : Android 轮子哥
- *    github : https://github.com/getActivity/ShapeView
- *    time   : 2021/08/28
- *    desc   : ShapeDrawable 构建类
+ * Shape 背景的统一配置、构建和应用入口。
+ *
+ * <p>该类把 XML 属性和 Java 链式 API 转换为 {@link ShapeDrawable}、状态选择器、
+ * {@link ShapeRippleDrawable} 与 {@link ShadowDrawable}。支持矩形、椭圆、线、环形，
+ * 以及圆角、渐变、描边、虚线、Ripple、状态背景和位图缓存阴影。</p>
+ *
+ * <p>背景装饰顺序固定为：构建默认/状态内容、按 Shape 轮廓裁剪自定义 Drawable、
+ * 包装 Ripple、最后包装阴影。Java 修改属性后必须调用 {@link #intoBackground()}
+ * 才会重新构建并应用背景。</p>
  */
 public final class ShapeDrawableBuilder {
 
+    /** 透明色同时作为“未配置可见颜色”的默认值。 */
     private static final int NO_COLOR = Color.TRANSPARENT;
 
+    /** 目标 View 和初始业务 padding；阴影占用的 inset 会在初始 padding 上叠加。 */
     private final View mView;
     private final int mOriginalPaddingStart;
     private final int mOriginalPaddingTop;
     private final int mOriginalPaddingEnd;
     private final int mOriginalPaddingBottom;
 
+    /** Shape 基础几何参数，所有尺寸单位均为 px。 */
     @ShapeTypeLimit
     private int mType;
     private int mWidth;
     private int mHeight;
 
+    /** 默认及各 DrawableState 对应的填充色。 */
     private int mSolidColor;
     private Integer mSolidPressedColor;
     private Integer mSolidCheckedColor;
@@ -54,11 +63,13 @@ public final class ShapeDrawableBuilder {
     private Integer mSolidFocusedColor;
     private Integer mSolidSelectedColor;
 
+    /** 四个物理方向圆角；start/end XML 属性读取时会转换成 left/right。 */
     private float mTopLeftRadius;
     private float mTopRightRadius;
     private float mBottomLeftRadius;
     private float mBottomRightRadius;
 
+    /** 填充渐变参数。 */
     private int[] mSolidGradientColors;
     private ShapeGradientOrientation mSolidGradientOrientation;
     @ShapeGradientTypeLimit
@@ -67,6 +78,7 @@ public final class ShapeDrawableBuilder {
     private float mSolidGradientCenterY;
     private int mSolidGradientRadius;
 
+    /** 默认及各 DrawableState 对应的描边参数。 */
     private int mStrokeColor;
     private Integer mStrokePressedColor;
     private Integer mStrokeCheckedColor;
@@ -81,6 +93,7 @@ public final class ShapeDrawableBuilder {
     private int mStrokeDashSize;
     private int mStrokeDashGap;
 
+    /** 阴影参数由最外层 ShadowDrawable 使用，不交给内容 ShapeDrawable 重复绘制。 */
     private int mShadowSize;
     private int mShadowColor;
     private int mShadowOffsetX;
@@ -101,9 +114,11 @@ public final class ShapeDrawableBuilder {
 
     private int mLineGravity;
 
+    /** Ripple 默认关闭，默认颜色为低透明度黑色。 */
     private boolean mRippleEnable;
     private int mRippleColor = 0x24000000;
 
+    /** 各状态可直接指定任意 Drawable，构建时按当前 Shape 轮廓裁剪。 */
     private Drawable mBackgroundDrawable;
     private Drawable mPressedBackgroundDrawable;
     private Drawable mCheckedBackgroundDrawable;
@@ -119,10 +134,12 @@ public final class ShapeDrawableBuilder {
     public ShapeDrawableBuilder(View view, @Nullable AttributeSet attrs,
                                 TypedArray typedArray, IShapeDrawableStyleable styleable) {
         mView = view;
+        // 保存业务原始 padding，动态重建阴影时从同一基准计算，避免反复累加 inset。
         mOriginalPaddingStart = view.getPaddingStart();
         mOriginalPaddingTop = view.getPaddingTop();
         mOriginalPaddingEnd = view.getPaddingEnd();
         mOriginalPaddingBottom = view.getPaddingBottom();
+        // 先读取基础 Shape 属性，再读取状态、Ripple、自定义背景和阴影扩展属性。
         mType = typedArray.getInt(styleable.getShapeTypeStyleable(), ShapeType.RECTANGLE);
         mWidth = typedArray.getDimensionPixelSize(styleable.getShapeWidthStyleable(), -1);
         mHeight = typedArray.getDimensionPixelSize(styleable.getShapeHeightStyleable(), -1);
@@ -365,6 +382,7 @@ public final class ShapeDrawableBuilder {
     }
 
     public ShapeDrawableBuilder setRadius(float radius) {
+        // 统一圆角覆盖四个角，调用方仍可在之后单独修改某个角。
         return setRadius(radius, radius, radius, radius);
     }
 
@@ -731,6 +749,7 @@ public final class ShapeDrawableBuilder {
     }
 
     public boolean isShadowEnable() {
+        // 阴影半径大于 0 且未主动隐藏时才创建 ShadowDrawable。
         return mShadowSize > 0 && !mShadowHidden;
     }
 
@@ -889,6 +908,7 @@ public final class ShapeDrawableBuilder {
 
     @Nullable
     public Drawable buildBackgroundDrawable() {
+        // 每次构建都创建新的状态容器，避免旧 Drawable.Callback 指向错误的 View。
         boolean hasSolidColorState = mSolidPressedColor != null || mSolidCheckedColor != null ||
                 mSolidDisabledColor != null || mSolidFocusedColor != null || mSolidSelectedColor != null;
 
@@ -933,7 +953,7 @@ public final class ShapeDrawableBuilder {
 
         ExtendStateListDrawable stateListDrawable = new ExtendStateListDrawable();
 
-        // Disabled must be registered before checked/selected so it wins when states overlap.
+        // 禁用状态先于 checked/selected 注册，多个状态重叠时由 disabled 胜出。
         if (mDisabledBackgroundDrawable != null || mSolidDisabledColor != null || mStrokeDisabledColor != null) {
             stateListDrawable.setDisabledDrawable(buildStateDrawable(
                     mDisabledBackgroundDrawable, mSolidDisabledColor, mStrokeDisabledColor));
@@ -963,6 +983,7 @@ public final class ShapeDrawableBuilder {
     private Drawable buildStateDrawable(@Nullable Drawable customDrawable,
                                         @Nullable Integer solidColor,
                                         @Nullable Integer strokeColor) {
+        // 自定义状态背景优先；未提供时复制 Builder 参数生成对应 ShapeDrawable。
         if (customDrawable != null) {
             return prepareCustomDrawable(customDrawable);
         }
@@ -974,6 +995,7 @@ public final class ShapeDrawableBuilder {
     public void refreshShapeDrawable(ShapeDrawable drawable,
                                      @Nullable Integer solidStateColor,
                                      @Nullable Integer strokeStateColor) {
+        // 写入 Builder 的完整参数快照，保证动态重建与 XML 初始化行为一致。
         drawable.setType(mType)
                 .setWidth(mWidth)
                 .setHeight(mHeight)
@@ -991,7 +1013,7 @@ public final class ShapeDrawableBuilder {
                 .setStrokeDashSize(mStrokeDashSize)
                 .setStrokeDashGap(mStrokeDashGap);
 
-        // ShadowDrawable owns shadow rendering and reserves the required bounds.
+        // 阴影由外层 ShadowDrawable 绘制并预留边界，内容 Drawable 关闭旧阴影。
         drawable.setShadowSize(0)
                 .setShadowOffsetX(0)
                 .setShadowOffsetY(0);
@@ -1038,7 +1060,7 @@ public final class ShapeDrawableBuilder {
     }
 
     public void intoBackground() {
-        // 获取到的 Drawable 有可能为空
+        // 重建完整装饰链并一次性替换背景，构建结果在无背景配置时可能为空。
         Drawable drawable = buildBackgroundDrawable();
         if (isStrokeDashLineEnable()) {
             // 需要关闭硬件加速，否则虚线或者阴影在某些手机上面无法生效
@@ -1053,6 +1075,7 @@ public final class ShapeDrawableBuilder {
 
     @Nullable
     private Drawable unwrapDecoratedDrawable(@Nullable Drawable drawable) {
+        // 重建前剥离本库包装层，避免 Ripple、阴影和裁剪层重复嵌套。
         if (drawable instanceof ShadowDrawable) {
             drawable = ((ShadowDrawable) drawable).getContentDrawable();
         }
@@ -1070,6 +1093,7 @@ public final class ShapeDrawableBuilder {
         if (drawable == null) {
             return null;
         }
+        // mutate 隔离共享 ConstantState；矩形和椭圆使用 Path 做可靠轮廓裁剪。
         if (mType != ShapeType.RECTANGLE && mType != ShapeType.OVAL) {
             return drawable.mutate();
         }
@@ -1084,6 +1108,7 @@ public final class ShapeDrawableBuilder {
 
     @Nullable
     private Drawable decorateDrawable(@Nullable Drawable drawable) {
+        // Ripple 包裹内容后再套阴影，阴影可以使用最终内容轮廓生成蒙版。
         return wrapShadowDrawable(wrapRippleDrawable(drawable));
     }
 
@@ -1097,6 +1122,7 @@ public final class ShapeDrawableBuilder {
 
     @NonNull
     private Drawable buildRippleMaskDrawable() {
+        // Ripple 蒙版只关心透明度和轮廓，使用不透明白色 Shape 即可。
         ShapeDrawable maskDrawable = new ShapeDrawable()
                 .setType(mType)
                 .setRadius(mTopLeftRadius, mTopRightRadius,
@@ -1123,6 +1149,7 @@ public final class ShapeDrawableBuilder {
 
     @Nullable
     private Drawable wrapShadowDrawable(@Nullable Drawable drawable) {
+        // 未开启阴影时直接返回内容，避免增加无意义的绘制层级。
         if (drawable == null || !isShadowEnable()) {
             return drawable;
         }
@@ -1142,6 +1169,7 @@ public final class ShapeDrawableBuilder {
     }
 
     private void applyContentPadding(@NonNull Drawable drawable) {
+        // 阴影外部 inset 叠加到原 padding，避免业务内容压在阴影区域。
         Rect insets = new Rect();
         if (drawable instanceof ShadowDrawable) {
             ((ShadowDrawable) drawable).getShadowInsets(insets);

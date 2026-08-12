@@ -15,6 +15,9 @@ import com.allynav.shape.styleable.ShapeRelativeLayoutStyleable;
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2021/07/17
  *    desc   : 支持直接定义 Shape 背景的 RelativeLayout
+ *
+ * <p>保留 RelativeLayout 的规则解析和子 View 定位，仅在构造阶段创建并应用统一
+ * Shape 背景 Builder。</p>
  */
 public class ShapeRelativeLayout extends RelativeLayout implements IGetShapeDrawableBuilder {
 
@@ -33,6 +36,7 @@ public class ShapeRelativeLayout extends RelativeLayout implements IGetShapeDraw
     public ShapeRelativeLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
 
+        // TypedArray 由当前构造函数拥有，Builder 初始化完成后立即回收。
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.ShapeRelativeLayout);
         mShapeDrawableBuilder = new ShapeDrawableBuilder(this, attrs, typedArray, STYLEABLE);
         typedArray.recycle();

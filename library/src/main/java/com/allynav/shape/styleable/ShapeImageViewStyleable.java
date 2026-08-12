@@ -7,13 +7,14 @@ import com.allynav.shape.config.IShapeDrawableStyleable;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/ShapeView
  *    time   : 2021/08/28
- *    desc   : ImageView 的 Shape 属性值
+ *    desc   : ImageView 的 Shape 背景属性索引映射
+ *
+ * <p>这里只映射 ImageView 背景 Shape；src 和 tint 的状态属性分别由独立的
+ * ShapeImageSource、ShapeImageTint 属性数组解析，避免背景与图片内容职责混合。</p>
  */
 public final class ShapeImageViewStyleable implements IShapeDrawableStyleable {
 
-    /**
-     * {@link IShapeDrawableStyleable}
-     */
+    /** 以下方法均返回 ShapeImageView 背景属性在 R.styleable 中的索引。 */
 
     @Override
     public int getShapeTypeStyleable() {

@@ -266,7 +266,11 @@
     <attr name="shape_marqueeEnable" format="boolean" />
     <!-- 跑马灯重复次数，-1 表示无限循环 -->
     <attr name="shape_marqueeRepeatLimit" format="integer" />
-    <!-- 完全位于屏幕可见区域时才滚动 -->
+    <!--
+        是否仅在控件完整位于屏幕可见区域时滚动，默认 false。
+        false：控件只要与窗口存在可见交集即可滚动，适合普通按钮和底部操作栏；
+        true：控件宽高都完整可见时才滚动，适合需要严格控制屏外动画的列表场景。
+    -->
     <attr name="shape_marqueeRequireFullyVisible" format="boolean" />
 
     <declare-styleable name="ShapeTextView">

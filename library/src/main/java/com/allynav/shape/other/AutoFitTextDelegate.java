@@ -55,6 +55,14 @@ public final class AutoFitTextDelegate {
     /** mApplying 阻止内部 setTextSize 被当成新的调用方配置。 */
     private boolean mApplying;
     private boolean mFitPending;
+    /**
+     * 记录上一次参与字号计算的正文可用宽度。
+     *
+     * <p>父容器约束变化不一定伴随文本、padding 等 setter 调用，因此不能只依赖
+     * {@link #onContentMetricsChanged()} 标记重新计算。每次测量时比较该值，可以覆盖
+     * 横竖屏切换、父容器显示隐藏以及 ConstraintLayout 重新分配宽度等场景。</p>
+     */
+    private int mLastAvailableWidth = -1;
 
     public AutoFitTextDelegate(TextView textView, TypedArray typedArray) {
         mTextView = textView;
@@ -92,16 +100,35 @@ public final class AutoFitTextDelegate {
         requestFit();
     }
 
-    public boolean fitAfterLayout() {
-        // 布局后可用宽度和 maxLines 均已稳定，此时执行一次待处理的字号搜索。
-        if (!mEnabled || (!mFitPending && mTextView.getTextSize() <= mMaxTextSize)) {
+    /**
+     * 在 TextView 完成第一次测量后，按本轮测得的宽度计算并应用最终字号。
+     *
+     * <p>旧实现把字号计算放在 onLayout 之后。控件由 GONE 恢复为 VISIBLE 时，系统会先
+     * 用原字号绘制/定位一轮，再因 AutoFit 修改字号重新布局：跑马灯可能短暂启动后停止，
+     * 水平 LinearLayout 还会依据变化后的文字基线把子控件整体下移。现在字号在父容器
+     * 真正布局子控件之前确定，ShapeTextView 会在同一次 onMeasure 中使用最终字号复测，
+     * 因而首帧位置和跑马灯所使用的 Layout 都保持一致。</p>
+     *
+     * @param measuredWidth TextView 第一次系统测量得到的宽度，包含左右 compound padding
+     * @return true 表示字号发生变化，调用方需要立即使用相同 MeasureSpec 再测量一次
+     */
+    public boolean fitAfterMeasure(int measuredWidth) {
+        if (!mEnabled) {
             return false;
         }
 
         int maxLines = mTextView.getMaxLines();
-        int availableWidth = mTextView.getWidth()
+        int availableWidth = measuredWidth
                 - mTextView.getCompoundPaddingLeft()
                 - mTextView.getCompoundPaddingRight();
+        if (availableWidth != mLastAvailableWidth) {
+            // 宽度变化会直接改变单行文字是否溢出，必须重新搜索，而不是沿用旧字号。
+            mLastAvailableWidth = availableWidth;
+            mFitPending = true;
+        }
+        if (!mFitPending && mTextView.getTextSize() <= mMaxTextSize) {
+            return false;
+        }
         if (maxLines <= 0 || maxLines == Integer.MAX_VALUE) {
             mFitPending = false;
             return false;

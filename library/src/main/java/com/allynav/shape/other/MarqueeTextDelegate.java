@@ -32,6 +32,23 @@ public final class MarqueeTextDelegate {
         mRefreshPosted = false;
         refreshSelectedState();
     };
+    /**
+     * 在下一绘制帧重新设置 selected。
+     *
+     * <p>Android TextView 的 Marquee 对象保存在内部 Layout 中。文本、字号、padding 或
+     * 宽度变化会替换 Layout，但 View 的 selected 仍可能保持 true；此时重复写入 true
+     * 不会产生状态变化，系统也就不会重新创建 Marquee。先在刷新任务中写入 false，
+     * 再跨一帧写入 true，可以稳定触发 TextView 的 startStopMarquee 流程。</p>
+     */
+    private final Runnable mStartRunnable = () -> {
+        mStartPosted = false;
+        if (!isVisibleForMarquee()) {
+            stopMarquee();
+            return;
+        }
+        mTextView.setSelected(true);
+        mRestartPending = false;
+    };
     /** 滚动后重新判断控件是否仍位于屏幕可见区域。 */
     private final ViewTreeObserver.OnScrollChangedListener mScrollChangedListener =
             this::scheduleRefresh;
@@ -58,8 +75,10 @@ public final class MarqueeTextDelegate {
     private boolean mObserving;
     /** 防止应用配置时 ShapeTextView 的重写方法把 MARQUEE 再次拦截。 */
     private boolean mApplyingConfiguration;
-    /** 是否已有延迟刷新任务，连续事件只保留一个任务。 */
+    /** 是否已有下一帧刷新任务，连续事件只保留一个任务。 */
     private boolean mRefreshPosted;
+    /** 是否已经安排下一帧重新进入 selected 状态。 */
+    private boolean mStartPosted;
     /**
      * 控件从隐藏状态恢复后是否需要重启跑马灯。仅把 selected 重复设置为 true 不一定
      * 会重建系统 Marquee，因此恢复显示时需要主动产生一次 false -> true 状态变化。
@@ -74,8 +93,12 @@ public final class MarqueeTextDelegate {
                 R.styleable.ShapeTextView_shape_marqueeEnable, false);
         mRepeatLimit = typedArray.getInt(
                 R.styleable.ShapeTextView_shape_marqueeRepeatLimit, -1);
+        // 默认只要求控件与窗口存在可见交集。底部按钮、沉浸式窗口和带缩放/位移的父容器
+        // 经常会因为系统坐标取整或父容器基线对齐少 1~数个像素；若默认要求 100% 可见，
+        // 可见性复查会把已经启动的跑马灯重新设为 selected=false，表现为“先滚动一下，
+        // 随后停止”。需要严格控制屏外动画的列表场景仍可在 XML 中显式设为 true。
         mRequireFullyVisible = typedArray.getBoolean(
-                R.styleable.ShapeTextView_shape_marqueeRequireFullyVisible, true);
+                R.styleable.ShapeTextView_shape_marqueeRequireFullyVisible, false);
     }
 
     public void initialize() {
@@ -125,16 +148,15 @@ public final class MarqueeTextDelegate {
      * 接收控件自身、祖先或窗口可见性变化后的初步结果。
      *
      * <p>这里不能只依赖传入结果直接启动跑马灯，因为 GONE -> VISIBLE 后布局和全局坐标
-     * 可能尚未稳定；显示时统一延迟到 {@link #refreshSelectedState()} 做最终判断。</p>
+     * 可能尚未稳定；显示时统一安排到下一绘制帧，由 {@link #refreshSelectedState()}
+     * 使用最终可见状态判断。</p>
      */
     public void onVisibilityChanged(boolean isVisible) {
         if (!mEnabled) {
             return;
         }
         if (!isVisible) {
-            cancelRefresh();
-            mTextView.setSelected(false);
-            mRestartPending = true;
+            stopMarquee();
             return;
         }
         scheduleRefresh();
@@ -151,9 +173,7 @@ public final class MarqueeTextDelegate {
             return;
         }
         if (!isVisible) {
-            cancelRefresh();
-            mTextView.setSelected(false);
-            mRestartPending = true;
+            stopMarquee();
             return;
         }
         // 父容器从 GONE 恢复后，以聚合可见状态重新启动跑马灯。
@@ -165,6 +185,21 @@ public final class MarqueeTextDelegate {
         scheduleRefresh();
     }
 
+    /**
+     * 通知委托 TextView 的内部排版条件已经变化。
+     *
+     * <p>文本、字号、padding 和控件尺寸都会导致系统重新创建 Layout，并清除正在运行的
+     * Marquee。这里只记录“需要重启”并合并刷新任务，不立即切换 selected，避免一次
+     * 自适应字号计算中的多次 setter 造成闪烁和重复启动。</p>
+     */
+    public void onContentMetricsChanged() {
+        if (!mEnabled) {
+            return;
+        }
+        mRestartPending = true;
+        scheduleRefresh();
+    }
+
     /** 控件附着窗口后注册位置监听，并安排首次可见性检查。 */
     public void onAttachedToWindow() {
         startObserving();
@@ -173,12 +208,8 @@ public final class MarqueeTextDelegate {
 
     /** 控件离开窗口时取消任务和监听器，防止持有失效的 ViewTreeObserver。 */
     public void onDetachedFromWindow() {
-        cancelRefresh();
+        stopMarquee();
         stopObserving();
-        if (mEnabled) {
-            mTextView.setSelected(false);
-            mRestartPending = true;
-        }
     }
 
     /**
@@ -227,24 +258,27 @@ public final class MarqueeTextDelegate {
     }
 
     /**
-     * 合并短时间内连续发生的布局、滚动和可见性事件。
+     * 合并同一绘制帧内连续发生的布局、滚动和可见性事件。
      *
-     * <p>任务排队后不再反复 remove/post，否则持续布局的页面会一直重置 300ms，导致
-     * selected 永远没有机会变成 true。</p>
+     * <p>这里使用 postOnAnimation 而不是固定延迟。布局完成后的下一帧已经足够取得稳定
+     * 尺寸；固定延迟会让已经开始滚动的文本在延迟到期时突然切换 selected，造成可见
+     * 的停顿。启动任务已排队时也不再插入刷新，避免全局布局监听反复取消下一帧启动。</p>
      */
     private void scheduleRefresh() {
-        if (!mEnabled || mRefreshPosted) {
+        if (!mEnabled || mRefreshPosted || mStartPosted) {
             return;
         }
-        // 合并连续布局和滚动事件，但不重复计时，避免刷新任务一直被推迟。
+        // 合并当前帧产生的多个事件，下一绘制帧只进行一次状态计算。
         mRefreshPosted = true;
-        mTextView.postDelayed(mRefreshRunnable, 300L);
+        mTextView.postOnAnimation(mRefreshRunnable);
     }
 
     /** 取消尚未执行的刷新任务，并同步清除排队标记。 */
     private void cancelRefresh() {
         mTextView.removeCallbacks(mRefreshRunnable);
         mRefreshPosted = false;
+        mTextView.removeCallbacks(mStartRunnable);
+        mStartPosted = false;
     }
 
     /**
@@ -254,31 +288,56 @@ public final class MarqueeTextDelegate {
      * 再比较可见矩形与控件尺寸。保留 1px 容差用于规避坐标取整误差。</p>
      */
     private void refreshSelectedState() {
-        if (!mEnabled || !mTextView.isAttachedToWindow()
-                || mTextView.getVisibility() != View.VISIBLE) {
-            mTextView.setSelected(false);
-            mRestartPending = true;
+        if (!isVisibleForMarquee()) {
+            stopMarquee();
             return;
         }
 
-        boolean visible = mTextView.getGlobalVisibleRect(mVisibleRect);
-        if (visible && mRequireFullyVisible) {
-            visible = mVisibleRect.width() >= mTextView.getWidth() - 1
-                    && mVisibleRect.height() >= mTextView.getHeight() - 1;
-        }
-        if (!visible) {
+        if (mRestartPending || !mTextView.isSelected()) {
+            // false 和 true 必须跨帧执行。若在同一调用栈中连续设置，部分 Android 版本
+            // 会复用刚失效的 Layout，最终仍停留在静态省略号状态。
+            mTextView.removeCallbacks(mStartRunnable);
             mTextView.setSelected(false);
-            mRestartPending = true;
-            return;
-        }
-        if (mRestartPending) {
-            // 控件从隐藏恢复后强制产生状态变化，确保系统重新启动跑马灯。
-            mTextView.setSelected(false);
-            mTextView.setSelected(true);
-            mRestartPending = false;
+            mStartPosted = true;
+            mTextView.postOnAnimation(mStartRunnable);
             return;
         }
         mTextView.setSelected(true);
+    }
+
+    /**
+     * 判断当前是否满足跑马灯启动条件。
+     *
+     * <p>普通模式使用 isShown 判断自身和全部祖先的 visibility，不要求控件每个像素都在
+     * 窗口内；严格模式才读取全局可见矩形。这样底部操作栏被系统窗口轻微裁剪时仍能
+     * 滚动，而列表中显式开启严格模式的条目仍可在完全进入屏幕后才启动。</p>
+     */
+    private boolean isVisibleForMarquee() {
+        if (!mEnabled || !mTextView.isAttachedToWindow()
+                || mTextView.getVisibility() != View.VISIBLE
+                || mTextView.getWindowVisibility() != View.VISIBLE
+                || !mTextView.isShown()) {
+            return false;
+        }
+        boolean visible = mTextView.getGlobalVisibleRect(mVisibleRect)
+                && !mVisibleRect.isEmpty();
+        if (!visible) {
+            return false;
+        }
+        if (!mRequireFullyVisible) {
+            // 普通模式只要求存在可见交集，不会因父容器裁剪少量边缘而停止跑马灯。
+            return true;
+        }
+        // 1px 容差只用于抵消 Android 全局坐标转为整数时的取整误差。
+        return mVisibleRect.width() >= mTextView.getWidth() - 1
+                && mVisibleRect.height() >= mTextView.getHeight() - 1;
+    }
+
+    /** 停止当前及待启动的跑马灯，并记录下次显示时必须重新建立滚动状态。 */
+    private void stopMarquee() {
+        cancelRefresh();
+        mTextView.setSelected(false);
+        mRestartPending = true;
     }
 
     /** 注册全局布局和滚动监听，同一次附着周期内只注册一次。 */

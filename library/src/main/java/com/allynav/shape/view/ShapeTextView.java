@@ -113,6 +113,10 @@ public class ShapeTextView extends AppCompatTextView implements
                 && !isMarqueeApplyingConfiguration()) {
             mAutoFitTextDelegate.onContentMetricsChanged();
         }
+        if (mMarqueeTextDelegate != null && !isMarqueeApplyingConfiguration()) {
+            // 新文本会替换 TextView 内部 Layout；即使 selected 仍为 true，也需要重启滚动。
+            mMarqueeTextDelegate.onContentMetricsChanged();
+        }
     }
 
     @Override
@@ -185,6 +189,10 @@ public class ShapeTextView extends AppCompatTextView implements
         if (mAutoFitTextDelegate != null) {
             mAutoFitTextDelegate.onTextSizeChanged(unit, size);
         }
+        if (mMarqueeTextDelegate != null && !isMarqueeApplyingConfiguration()) {
+            // AutoFit 通过本方法应用最终字号，字号变化后系统 Marquee 必须重新建立。
+            mMarqueeTextDelegate.onContentMetricsChanged();
+        }
     }
 
     @Override
@@ -195,6 +203,9 @@ public class ShapeTextView extends AppCompatTextView implements
         }
         if (mAutoFitTextDelegate != null && !isAdaptiveApplying()) {
             mAutoFitTextDelegate.onContentMetricsChanged();
+        }
+        if (mMarqueeTextDelegate != null) {
+            mMarqueeTextDelegate.onContentMetricsChanged();
         }
     }
 
@@ -207,6 +218,9 @@ public class ShapeTextView extends AppCompatTextView implements
         if (mAutoFitTextDelegate != null) {
             mAutoFitTextDelegate.onContentMetricsChanged();
         }
+        if (mMarqueeTextDelegate != null) {
+            mMarqueeTextDelegate.onContentMetricsChanged();
+        }
     }
 
     @Override
@@ -216,6 +230,13 @@ public class ShapeTextView extends AppCompatTextView implements
             mAdaptiveTextDelegate.beforeMeasure();
         }
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        if (mAutoFitTextDelegate != null
+                && mAutoFitTextDelegate.fitAfterMeasure(getMeasuredWidth())) {
+            // AutoFit 已根据第一次测得的正文宽度选出最终字号。必须在本次测量调用内立即
+            // 复测，让父容器第一次布局时就获得最终高度和 baseline；否则横向 LinearLayout
+            // 会在下一轮布局中按新基线移动子控件，表现为控件显示后突然向下偏移。
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        }
     }
 
     @Override
@@ -223,19 +244,18 @@ public class ShapeTextView extends AppCompatTextView implements
         super.onLayout(changed, left, top, right, bottom);
         // 动态显示后的首次布局完成时，跑马灯才能取得有效尺寸和屏幕坐标。
         mMarqueeTextDelegate.onLayout();
-        // 自动字号发生变化会请求下一轮布局，本轮不再继续压缩行距或行数。
-        if (mAutoFitTextDelegate.fitAfterLayout()) {
-            return;
-        }
+        // AutoFit 已在 onMeasure 内完成并复测，此处只处理依赖最终 Layout 的高度适配。
         mAdaptiveTextDelegate.afterLayout();
     }
 
     @Override
     protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
         super.onSizeChanged(width, height, oldWidth, oldHeight);
-        // 只有宽度变化会改变文字换行和单行可用空间。
-        if (mAutoFitTextDelegate != null && width != oldWidth) {
-            mAutoFitTextDelegate.onContentMetricsChanged();
+        // AutoFit 在每次 onMeasure 中直接比较正文可用宽度，无需在布局结束后再请求一轮
+        // 测量；这里仅通知跑马灯内部 Layout 已随最终宽高变化，需要按稳定尺寸重启。
+        if (mMarqueeTextDelegate != null && (width != oldWidth || height != oldHeight)) {
+            // GONE -> VISIBLE 或父容器重新排版后，最终宽高变化也会使内部 Layout 失效。
+            mMarqueeTextDelegate.onContentMetricsChanged();
         }
     }
 

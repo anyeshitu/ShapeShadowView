@@ -74,7 +74,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.anyeshitu:ShapeShadowView:1.1.2")
+    implementation("com.github.anyeshitu:ShapeShadowView:1.1.3")
 }
 ```
 
@@ -82,7 +82,7 @@ Groovy DSL：
 
 ```groovy
 dependencies {
-    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.2'
+    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.3'
 }
 ```
 
@@ -504,14 +504,21 @@ app:shape_textDisabled="暂不可用"
 
 ### ShapeTextView 跑马灯
 
-该能力使用 Android 原生 `MARQUEE`，并在控件离开屏幕时自动取消 `selected`，重新完全可见后恢复滚动。
+该能力使用 Android 原生 `MARQUEE`，由组件根据窗口、父容器和自身可见性自动维护
+`selected`。控件从 `GONE` 恢复为 `VISIBLE` 后会在最终尺寸稳定时自动重启，不需要业务代码
+手动调用 `setSelected(true)`。默认只要求控件与窗口存在可见交集；需要完整进入屏幕后才滚动时，
+可显式开启 `shape_marqueeRequireFullyVisible`。
+
+跑马灯和 `shape_autoFitTextEnable` 可以同时开启。自动字号会在测量阶段完成，控件首帧和后续帧
+使用同一字号、基线与高度，避免动态显示后文字或控件发生位置跳动；缩到最小字号仍然超宽时，
+原生跑马灯继续展示完整文本。
 默认关闭，开启后控件会自动设置为单行：
 
 | 属性 | 格式 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `shape_marqueeEnable` | boolean | `false` | 是否开启系统跑马灯 |
 | `shape_marqueeRepeatLimit` | integer | `-1` | 重复次数，`-1` 表示无限循环 |
-| `shape_marqueeRequireFullyVisible` | boolean | `true` | 是否要求控件完整位于屏幕内才滚动 |
+| `shape_marqueeRequireFullyVisible` | boolean | `false` | 是否要求控件完整位于屏幕内才滚动；普通按钮建议保持 `false` |
 
 ```xml
 <com.allynav.shape.view.ShapeTextView

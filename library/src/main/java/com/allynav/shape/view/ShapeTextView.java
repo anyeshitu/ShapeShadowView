@@ -50,6 +50,22 @@ public class ShapeTextView extends AppCompatTextView implements
     private final AdaptiveTextDelegate mAdaptiveTextDelegate;
     private final AutoFitTextDelegate mAutoFitTextDelegate;
     private final MarqueeTextDelegate mMarqueeTextDelegate;
+    /**
+     * 是否允许父 LinearLayout 使用当前文字基线参与横向子控件定位。
+     *
+     * <p>AutoFit 可能在控件由 GONE 恢复为 VISIBLE 时选出不同字号。若横向 LinearLayout
+     * 使用 TextView 的 baseline 对齐子控件，字号对应的 ascent/descent 变化会使整个固定
+     * 高度按钮向下移动，甚至把底部描边移出父容器。默认在 AutoFit 开启时关闭基线输出，
+     * 普通 ShapeTextView 则保留系统行为；调用方可通过 XML 或 Java 显式覆盖。</p>
+     */
+    private boolean mTextBaselineEnabled;
+    /**
+     * 调用方是否通过 XML 或 Java 明确指定过基线策略。
+     *
+     * <p>未指定时，基线开关会跟随 AutoFit 动态变化；一旦显式指定，就不再由 AutoFit
+     * 覆盖，保证调用方对表单基线布局拥有最终控制权。</p>
+     */
+    private boolean mTextBaselineConfigured;
 
     public ShapeTextView(Context context) {
         this(context, null);
@@ -70,6 +86,14 @@ public class ShapeTextView extends AppCompatTextView implements
         mAdaptiveTextDelegate = new AdaptiveTextDelegate(this, typedArray);
         mAutoFitTextDelegate = new AutoFitTextDelegate(this, typedArray);
         mMarqueeTextDelegate = new MarqueeTextDelegate(this, typedArray);
+        // 未显式配置时仅对 AutoFit 控件关闭基线。这样按钮栏无需逐个给父 LinearLayout
+        // 添加 baselineAligned=false，同时不改变普通文本在表单中的原生基线对齐能力。
+        mTextBaselineConfigured = typedArray.hasValue(
+                R.styleable.ShapeTextView_shape_textBaselineEnabled);
+        mTextBaselineEnabled = mTextBaselineConfigured
+                ? typedArray.getBoolean(
+                        R.styleable.ShapeTextView_shape_textBaselineEnabled, true)
+                : !mAutoFitTextDelegate.isEnabled();
         // 跑马灯会修改 singleLine/ellipsize，必须在保存完其他文字基准配置后初始化。
         mMarqueeTextDelegate.initialize();
         typedArray.recycle();
@@ -239,6 +263,19 @@ public class ShapeTextView extends AppCompatTextView implements
         }
     }
 
+    /**
+     * 返回给父布局的文字基线位置。
+     *
+     * <p>返回 -1 是 Android View 约定的“该控件没有可用于对齐的 baseline”。横向
+     * LinearLayout 收到 -1 后会按自身 gravity 正常放置固定高度按钮，不会再根据 AutoFit
+     * 前后变化的字体基线修正子控件纵向坐标。该方法只影响父布局定位，不影响控件内部
+     * gravity、文字绘制位置、跑马灯或背景描边。</p>
+     */
+    @Override
+    public int getBaseline() {
+        return mTextBaselineEnabled ? super.getBaseline() : -1;
+    }
+
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
@@ -371,6 +408,11 @@ public class ShapeTextView extends AppCompatTextView implements
 
     public void setAutoFitTextEnabled(boolean enabled) {
         mAutoFitTextDelegate.setEnabled(enabled);
+        if (!mTextBaselineConfigured) {
+            // 自动策略下，运行时开启 AutoFit 也要同步退出父容器基线对齐；关闭后恢复
+            // TextView 原生 baseline，行为与 XML 初始化保持一致。
+            updateTextBaselineEnabled(!enabled);
+        }
     }
 
     public boolean isEnableFit() {
@@ -474,5 +516,29 @@ public class ShapeTextView extends AppCompatTextView implements
 
     public void setMarqueeRequireFullyVisible(boolean requireFullyVisible) {
         mMarqueeTextDelegate.setRequireFullyVisible(requireFullyVisible);
+    }
+
+    /** 返回当前是否允许父布局使用 ShapeTextView 的文字基线。 */
+    public boolean isTextBaselineEnabled() {
+        return mTextBaselineEnabled;
+    }
+
+    /**
+     * 设置是否向父布局提供文字基线。
+     *
+     * <p>状态变化后调用 requestLayout，使已经完成布局的父 LinearLayout 立即重新计算
+     * 子控件纵向位置；不需要调用方手动操作父容器。</p>
+     */
+    public void setTextBaselineEnabled(boolean enabled) {
+        mTextBaselineConfigured = true;
+        updateTextBaselineEnabled(enabled);
+    }
+
+    /** 应用基线状态并仅在状态真正变化时请求父容器重新布局。 */
+    private void updateTextBaselineEnabled(boolean enabled) {
+        if (mTextBaselineEnabled != enabled) {
+            mTextBaselineEnabled = enabled;
+            requestLayout();
+        }
     }
 }

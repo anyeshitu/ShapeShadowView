@@ -74,7 +74,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.anyeshitu:ShapeShadowView:1.1.4")
+    implementation("com.github.anyeshitu:ShapeShadowView:1.1.5")
 }
 ```
 
@@ -82,7 +82,7 @@ Groovy DSL：
 
 ```groovy
 dependencies {
-    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.4'
+    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.5'
 }
 ```
 
@@ -486,6 +486,7 @@ app:shape_textDisabled="暂不可用"
 | `shape_autoFitMinTextSize` | dimension | `8sp` | 允许使用的最小字号 |
 | `shape_autoFitMaxTextSize` | dimension | `android:textSize` | 允许使用的最大字号 |
 | `shape_autoFitPrecision` | float | `0.5` | 二分查找精度，越小越精确但计算更多 |
+| `shape_textBaselineEnabled` | boolean | 自动 | 是否向父布局提供文字基线；AutoFit 开启时默认关闭，普通文本默认开启 |
 
 ```xml
 <com.allynav.shape.view.ShapeTextView
@@ -501,6 +502,11 @@ app:shape_textDisabled="暂不可用"
 
 该能力要求有限的 `android:maxLines`；未限制行数时不会调整。它可以和固定高度自适应同时开启，
 执行顺序是先自动缩小字号，仍然放不下时再按 `shape_adaptiveTextMode` 处理行间距或行数。
+
+开启 AutoFit 后，`ShapeTextView` 默认不会向横向 `LinearLayout` 提供文字基线，因此动态
+`GONE/VISIBLE` 或字号变化不会带动固定高度按钮上下移动，父容器无需重复配置
+`android:baselineAligned="false"`。表单等确实需要文字基线对齐的场景，可在对应控件上设置
+`app:shape_textBaselineEnabled="true"`，或调用 `setTextBaselineEnabled(true)`。
 
 ### ShapeTextView 跑马灯
 

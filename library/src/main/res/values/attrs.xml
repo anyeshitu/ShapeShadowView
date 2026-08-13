@@ -261,6 +261,12 @@
     <attr name="shape_autoFitMaxTextSize" format="dimension" />
     <!-- 二分查找精度，默认 0.5px -->
     <attr name="shape_autoFitPrecision" format="float" />
+    <!--
+        是否允许 ShapeTextView 向父 LinearLayout 提供文字基线。
+        未配置时采用自动策略：开启 AutoFit 则关闭基线，普通文本则保留系统基线；
+        显式设为 true 可用于表单标签等确实需要基线对齐的场景。
+    -->
+    <attr name="shape_textBaselineEnabled" format="boolean" />
 
     <!-- ShapeTextView 系统跑马灯（默认关闭） -->
     <attr name="shape_marqueeEnable" format="boolean" />
@@ -350,6 +356,7 @@
         <attr name="shape_autoFitMinTextSize" />
         <attr name="shape_autoFitMaxTextSize" />
         <attr name="shape_autoFitPrecision" />
+        <attr name="shape_textBaselineEnabled" />
 
         <attr name="shape_marqueeEnable" />
         <attr name="shape_marqueeRepeatLimit" />

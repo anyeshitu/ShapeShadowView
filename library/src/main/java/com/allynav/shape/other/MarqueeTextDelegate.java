@@ -40,15 +40,7 @@ public final class MarqueeTextDelegate {
      * 不会产生状态变化，系统也就不会重新创建 Marquee。先在刷新任务中写入 false，
      * 再跨一帧写入 true，可以稳定触发 TextView 的 startStopMarquee 流程。</p>
      */
-    private final Runnable mStartRunnable = () -> {
-        mStartPosted = false;
-        if (!isVisibleForMarquee()) {
-            stopMarquee();
-            return;
-        }
-        mTextView.setSelected(true);
-        mRestartPending = false;
-    };
+    private final Runnable mStartRunnable;
     /** 滚动后重新判断控件是否仍位于屏幕可见区域。 */
     private final ViewTreeObserver.OnScrollChangedListener mScrollChangedListener =
             this::scheduleRefresh;
@@ -89,6 +81,18 @@ public final class MarqueeTextDelegate {
 
     public MarqueeTextDelegate(TextView textView, TypedArray typedArray) {
         mTextView = textView;
+        // mTextView 是 final 字段，必须先在构造方法中完成赋值，再创建会捕获它的 Runnable。
+        // 如果把该 lambda 直接写成字段初始化器，Java 会认为它可能在 mTextView 初始化
+        // 之前执行，从而在 JitPack 的 javac 阶段报“variable might not have been initialized”。
+        mStartRunnable = () -> {
+            mStartPosted = false;
+            if (!isVisibleForMarquee()) {
+                stopMarquee();
+                return;
+            }
+            mTextView.setSelected(true);
+            mRestartPending = false;
+        };
         mEnabled = typedArray.getBoolean(
                 R.styleable.ShapeTextView_shape_marqueeEnable, false);
         mRepeatLimit = typedArray.getInt(

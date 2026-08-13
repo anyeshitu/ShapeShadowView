@@ -74,7 +74,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.anyeshitu:ShapeShadowView:1.1.3")
+    implementation("com.github.anyeshitu:ShapeShadowView:1.1.4")
 }
 ```
 
@@ -82,7 +82,7 @@ Groovy DSL：
 
 ```groovy
 dependencies {
-    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.3'
+    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.4'
 }
 ```
 

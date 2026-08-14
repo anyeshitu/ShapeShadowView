@@ -74,7 +74,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.anyeshitu:ShapeShadowView:1.1.6")
+    implementation("com.github.anyeshitu:ShapeShadowView:1.1.7")
 }
 ```
 
@@ -82,7 +82,7 @@ Groovy DSL：
 
 ```groovy
 dependencies {
-    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.6'
+    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.7'
 }
 ```
 
@@ -514,6 +514,10 @@ app:shape_textDisabled="暂不可用"
 `selected`。控件从 `GONE` 恢复为 `VISIBLE` 后会在最终尺寸稳定时自动重启，不需要业务代码
 手动调用 `setSelected(true)`。默认只要求控件与窗口存在可见交集；需要完整进入屏幕后才滚动时，
 可显式开启 `shape_marqueeRequireFullyVisible`。
+
+DataBinding、LiveData 或业务代码动态替换文本时，组件会先停止旧文本的 Marquee，并在新文本
+完成测量和布局后的预绘制阶段重新启动。因此文本可以在短名称和长名称之间反复切换，调用方
+不需要额外切换 `selected`，长文本也不会停留在静态省略号状态。
 
 跑马灯和 `shape_autoFitTextEnable` 可以同时开启。自动字号会在测量阶段完成，控件首帧和后续帧
 使用同一字号、基线与高度，避免动态显示后文字或控件发生位置跳动；缩到最小字号仍然超宽时，

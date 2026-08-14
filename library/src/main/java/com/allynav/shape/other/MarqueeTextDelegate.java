@@ -33,14 +33,14 @@ public final class MarqueeTextDelegate {
         refreshSelectedState();
     };
     /**
-     * 在下一绘制帧重新设置 selected。
+     * 在下一次预绘制阶段重新设置 selected。
      *
      * <p>Android TextView 的 Marquee 对象保存在内部 Layout 中。文本、字号、padding 或
-     * 宽度变化会替换 Layout，但 View 的 selected 仍可能保持 true；此时重复写入 true
-     * 不会产生状态变化，系统也就不会重新创建 Marquee。先在刷新任务中写入 false，
-     * 再跨一帧写入 true，可以稳定触发 TextView 的 startStopMarquee 流程。</p>
+     * 宽度变化会替换 Layout，但动画帧回调发生在测量和布局之前，直接在下一动画帧写入
+     * selected=true 仍可能命中旧 Layout。预绘制发生在测量、布局之后，可以保证系统
+     * 使用新文本对应的 Layout 判断是否溢出并创建 Marquee。</p>
      */
-    private final Runnable mStartRunnable;
+    private final ViewTreeObserver.OnPreDrawListener mStartPreDrawListener;
     /** 滚动后重新判断控件是否仍位于屏幕可见区域。 */
     private final ViewTreeObserver.OnScrollChangedListener mScrollChangedListener =
             this::scheduleRefresh;
@@ -69,7 +69,7 @@ public final class MarqueeTextDelegate {
     private boolean mApplyingConfiguration;
     /** 是否已有下一帧刷新任务，连续事件只保留一个任务。 */
     private boolean mRefreshPosted;
-    /** 是否已经安排下一帧重新进入 selected 状态。 */
+    /** 是否已经安排在下一次预绘制时重新进入 selected 状态。 */
     private boolean mStartPosted;
     /**
      * 控件从隐藏状态恢复后是否需要重启跑马灯。仅把 selected 重复设置为 true 不一定
@@ -78,21 +78,14 @@ public final class MarqueeTextDelegate {
     private boolean mRestartPending = true;
     /** 保存注册监听器时使用的实例，确保从同一个 ViewTreeObserver 中移除监听器。 */
     private ViewTreeObserver mObserver;
+    /** 保存一次性预绘制监听器所属实例，布局树替换后仍能从原实例安全移除。 */
+    private ViewTreeObserver mStartObserver;
 
     public MarqueeTextDelegate(TextView textView, TypedArray typedArray) {
         mTextView = textView;
-        // mTextView 是 final 字段，必须先在构造方法中完成赋值，再创建会捕获它的 Runnable。
-        // 如果把该 lambda 直接写成字段初始化器，Java 会认为它可能在 mTextView 初始化
-        // 之前执行，从而在 JitPack 的 javac 阶段报“variable might not have been initialized”。
-        mStartRunnable = () -> {
-            mStartPosted = false;
-            if (!isVisibleForMarquee()) {
-                stopMarquee();
-                return;
-            }
-            mTextView.setSelected(true);
-            mRestartPending = false;
-        };
+        // mTextView 是 final 字段，先完成赋值再创建方法引用，避免字段初始化阶段访问
+        // 尚未赋值的 TextView，也便于预绘制回调统一走可见性和任务清理逻辑。
+        mStartPreDrawListener = this::startMarqueeBeforeDraw;
         mEnabled = typedArray.getBoolean(
                 R.styleable.ShapeTextView_shape_marqueeEnable, false);
         mRepeatLimit = typedArray.getInt(
@@ -201,6 +194,11 @@ public final class MarqueeTextDelegate {
             return;
         }
         mRestartPending = true;
+        if (mStartPosted) {
+            // 新文本到来时，旧预绘制任务可能仍对应上一次短文本或旧字号。必须先取消它，
+            // 否则旧任务会把 selected 设为 true 并清掉最新重启请求，长文本只剩省略号。
+            cancelPendingStart();
+        }
         scheduleRefresh();
     }
 
@@ -266,7 +264,8 @@ public final class MarqueeTextDelegate {
      *
      * <p>这里使用 postOnAnimation 而不是固定延迟。布局完成后的下一帧已经足够取得稳定
      * 尺寸；固定延迟会让已经开始滚动的文本在延迟到期时突然切换 selected，造成可见
-     * 的停顿。启动任务已排队时也不再插入刷新，避免全局布局监听反复取消下一帧启动。</p>
+     * 的停顿。预绘制启动任务已排队时也不再插入普通刷新，避免全局布局监听反复取消
+     * 即将执行的启动任务。</p>
      */
     private void scheduleRefresh() {
         if (!mEnabled || mRefreshPosted || mStartPosted) {
@@ -281,7 +280,20 @@ public final class MarqueeTextDelegate {
     private void cancelRefresh() {
         mTextView.removeCallbacks(mRefreshRunnable);
         mRefreshPosted = false;
-        mTextView.removeCallbacks(mStartRunnable);
+        cancelPendingStart();
+    }
+
+    /**
+     * 移除尚未执行的一次性预绘制任务。
+     *
+     * <p>必须从注册时保存的 ViewTreeObserver 移除，而不是重新调用 getViewTreeObserver；
+     * 控件重新附着或 ViewRoot 替换后，两次取得的实例可能不同。</p>
+     */
+    private void cancelPendingStart() {
+        if (mStartObserver != null && mStartObserver.isAlive()) {
+            mStartObserver.removeOnPreDrawListener(mStartPreDrawListener);
+        }
+        mStartObserver = null;
         mStartPosted = false;
     }
 
@@ -298,15 +310,43 @@ public final class MarqueeTextDelegate {
         }
 
         if (mRestartPending || !mTextView.isSelected()) {
-            // false 和 true 必须跨帧执行。若在同一调用栈中连续设置，部分 Android 版本
-            // 会复用刚失效的 Layout，最终仍停留在静态省略号状态。
-            mTextView.removeCallbacks(mStartRunnable);
+            // 先退出 selected，让 TextView 明确停止旧 Marquee；等新 Layout 完成测量和布局
+            // 后再于预绘制阶段恢复 selected，避免短文本切换成长文本时复用旧 Layout。
+            cancelPendingStart();
             mTextView.setSelected(false);
+            mStartObserver = mTextView.getViewTreeObserver();
+            if (!mStartObserver.isAlive()) {
+                // ViewTreeObserver 已失效时保留重启标记，下一帧重新获取有效实例。
+                mStartObserver = null;
+                scheduleRefresh();
+                return;
+            }
             mStartPosted = true;
-            mTextView.postOnAnimation(mStartRunnable);
+            mStartObserver.addOnPreDrawListener(mStartPreDrawListener);
+            // 文本变化通常已经请求布局；额外 invalidate 用于覆盖仅 selected 状态变化、
+            // 当前没有待执行绘制任务的场景，确保一次性预绘制监听器能够被调用。
+            mTextView.invalidate();
             return;
         }
         mTextView.setSelected(true);
+    }
+
+    /**
+     * 在新文本 Layout 已经生成、即将绘制前启动系统 Marquee。
+     *
+     * <p>先清除 mRestartPending 再写入 selected=true。若 selected 状态触发了状态文本
+     * 切换并再次进入 onContentMetricsChanged，新请求会重新把标记设为 true，不会被
+     * 本回调末尾错误覆盖。</p>
+     */
+    private boolean startMarqueeBeforeDraw() {
+        cancelPendingStart();
+        if (!isVisibleForMarquee()) {
+            stopMarquee();
+            return true;
+        }
+        mRestartPending = false;
+        mTextView.setSelected(true);
+        return true;
     }
 
     /**

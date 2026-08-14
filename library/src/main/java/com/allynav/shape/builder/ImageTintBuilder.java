@@ -59,6 +59,12 @@ public final class ImageTintBuilder {
             mTintColor = array.getColor(
                     R.styleable.ShapeImageTint_shape_tint, mTintColor);
         }
+        if (array.hasValue(R.styleable.ShapeImageTint_shape_enableTint)) {
+            // 新名称与 shape_tint 含义相同；同时配置时明确使用 shape_enableTint。
+            mHasTint = true;
+            mTintColor = array.getColor(
+                    R.styleable.ShapeImageTint_shape_enableTint, mTintColor);
+        }
         if (array.hasValue(R.styleable.ShapeImageTint_shape_pressedTint)) {
             mPressedTint = array.getColor(
                     R.styleable.ShapeImageTint_shape_pressedTint, Color.TRANSPARENT);
@@ -71,6 +77,11 @@ public final class ImageTintBuilder {
             mDisabledTint = array.getColor(
                     R.styleable.ShapeImageTint_shape_disabledTint, Color.TRANSPARENT);
         }
+        if (array.hasValue(R.styleable.ShapeImageTint_shape_disableTint)) {
+            // shape_disableTint 是 disabledTint 的简写别名，同时配置时由新名称覆盖。
+            mDisabledTint = array.getColor(
+                    R.styleable.ShapeImageTint_shape_disableTint, Color.TRANSPARENT);
+        }
         if (array.hasValue(R.styleable.ShapeImageTint_shape_focusedTint)) {
             mFocusedTint = array.getColor(
                     R.styleable.ShapeImageTint_shape_focusedTint, Color.TRANSPARENT);
@@ -82,11 +93,13 @@ public final class ImageTintBuilder {
         array.recycle();
     }
 
+    /** 返回 XML 或 Java 是否至少设置了一项自定义 tint，用于避免无配置时接管原生行为。 */
     public boolean hasCustomTint() {
         return mHasTint || mPressedTint != null || mCheckedTint != null ||
                 mDisabledTint != null || mFocusedTint != null || mSelectedTint != null;
     }
 
+    /** 设置普通启用状态的 tint；配置后会覆盖图片自身颜色，调用 intoTint 后生效。 */
     public ImageTintBuilder setTintColor(int color) {
         mHasTint = true;
         mTintColor = color;
@@ -98,6 +111,17 @@ public final class ImageTintBuilder {
         return setTintColor(color);
     }
 
+    /** 设置启用状态普通 tint，等同于 setTintColor。 */
+    public ImageTintBuilder setEnableTintColor(int color) {
+        return setTintColor(color);
+    }
+
+    /** 与 {@link #setEnableTintColor(int)} 含义相同。 */
+    public ImageTintBuilder setEnableTint(int color) {
+        return setEnableTintColor(color);
+    }
+
+    /** 设置按下状态 tint；传入 null 可删除该状态颜色并回退到普通状态。 */
     public ImageTintBuilder setPressedTintColor(@Nullable Integer color) {
         mPressedTint = color;
         return this;
@@ -108,6 +132,7 @@ public final class ImageTintBuilder {
         return setPressedTintColor(color);
     }
 
+    /** 设置 checked 状态 tint，供追加了 checked DrawableState 的扩展图片控件使用。 */
     public ImageTintBuilder setCheckedTintColor(@Nullable Integer color) {
         mCheckedTint = color;
         return this;
@@ -117,6 +142,7 @@ public final class ImageTintBuilder {
         return setCheckedTintColor(color);
     }
 
+    /** 设置 enabled=false 时的 tint；禁用状态在所有自定义状态中优先级最高。 */
     public ImageTintBuilder setDisabledTintColor(@Nullable Integer color) {
         mDisabledTint = color;
         return this;
@@ -126,6 +152,16 @@ public final class ImageTintBuilder {
         return setDisabledTintColor(color);
     }
 
+    /** shape_disableTint 对应的 Java API，内部继续复用 disabled 状态字段。 */
+    public ImageTintBuilder setDisableTintColor(@Nullable Integer color) {
+        return setDisabledTintColor(color);
+    }
+
+    public ImageTintBuilder setDisableTint(@Nullable Integer color) {
+        return setDisableTintColor(color);
+    }
+
+    /** 设置控件获得焦点时的 tint；传入 null 可删除该状态配置。 */
     public ImageTintBuilder setFocusedTintColor(@Nullable Integer color) {
         mFocusedTint = color;
         return this;
@@ -135,6 +171,7 @@ public final class ImageTintBuilder {
         return setFocusedTintColor(color);
     }
 
+    /** 设置 selected=true 时的 tint；普通状态不受该配置影响。 */
     public ImageTintBuilder setSelectedTintColor(@Nullable Integer color) {
         mSelectedTint = color;
         return this;
@@ -144,12 +181,14 @@ public final class ImageTintBuilder {
         return setSelectedTintColor(color);
     }
 
+    /** 开始接管图片 tint，并立即按照控件当前 DrawableState 刷新颜色。 */
     public void intoTint() {
         // 立即按当前状态解析颜色，保证动态设置后马上生效。
         mTintConfigured = true;
         onDrawableStateChanged(mImageView.getDrawableState());
     }
 
+    /** 清空全部自定义状态 tint，并恢复构建器创建时记录的原始 ColorStateList。 */
     public void clearTint() {
         // 恢复控件创建构建器时的原始 ColorStateList。
         mTintConfigured = false;
@@ -162,6 +201,7 @@ public final class ImageTintBuilder {
         mImageView.setImageTintList(mOriginalTint);
     }
 
+    /** 由 ShapeImageView 在 DrawableState 变化后调用，解析并应用当前状态颜色。 */
     public void onDrawableStateChanged(@NonNull int[] stateSet) {
         if (!mTintConfigured) {
             return;

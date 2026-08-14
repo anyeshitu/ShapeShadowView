@@ -8,6 +8,7 @@ import android.util.AttributeSet;
 import android.util.TypedValue;
 import androidx.appcompat.widget.AppCompatTextView;
 import com.allynav.shape.R;
+import com.allynav.shape.builder.CompoundDrawableTintBuilder;
 import com.allynav.shape.builder.ShapeDrawableBuilder;
 import com.allynav.shape.builder.TextColorBuilder;
 import com.allynav.shape.config.IGetShapeDrawableBuilder;
@@ -47,6 +48,7 @@ public class ShapeTextView extends AppCompatTextView implements
     private final ShapeDrawableBuilder mShapeDrawableBuilder;
     private final TextColorBuilder mTextColorBuilder;
     private final TextStateDelegate mTextStateDelegate;
+    private final CompoundDrawableTintBuilder mCompoundDrawableTintBuilder;
     private final AdaptiveTextDelegate mAdaptiveTextDelegate;
     private final AutoFitTextDelegate mAutoFitTextDelegate;
     private final MarqueeTextDelegate mMarqueeTextDelegate;
@@ -83,6 +85,7 @@ public class ShapeTextView extends AppCompatTextView implements
         mShapeDrawableBuilder = new ShapeDrawableBuilder(this, attrs, typedArray, STYLEABLE);
         mTextColorBuilder = new TextColorBuilder(this, typedArray, STYLEABLE);
         mTextStateDelegate = new TextStateDelegate(this, attrs);
+        mCompoundDrawableTintBuilder = new CompoundDrawableTintBuilder(this, attrs);
         mAdaptiveTextDelegate = new AdaptiveTextDelegate(this, typedArray);
         mAutoFitTextDelegate = new AutoFitTextDelegate(this, typedArray);
         mMarqueeTextDelegate = new MarqueeTextDelegate(this, typedArray);
@@ -101,6 +104,10 @@ public class ShapeTextView extends AppCompatTextView implements
         mShapeDrawableBuilder.intoBackground();
         mTextColorBuilder.intoTextColor();
         mTextStateDelegate.refresh();
+        if (mCompoundDrawableTintBuilder.hasCustomTint()) {
+            // XML 至少配置一个 tint 状态时才接管 compound drawable，未配置时保持原生行为。
+            mCompoundDrawableTintBuilder.intoTint();
+        }
     }
 
     @Override
@@ -346,6 +353,9 @@ public class ShapeTextView extends AppCompatTextView implements
         if (mTextStateDelegate != null) {
             mTextStateDelegate.refresh();
         }
+        if (mCompoundDrawableTintBuilder != null) {
+            mCompoundDrawableTintBuilder.onDrawableStateChanged(getDrawableState());
+        }
     }
 
     @Override
@@ -368,6 +378,11 @@ public class ShapeTextView extends AppCompatTextView implements
     @Override
     public TextStateDelegate getTextStateDelegate() {
         return mTextStateDelegate;
+    }
+
+    /** 返回 drawableStart/Top/End/Bottom 共用的状态 tint 构建器。 */
+    public CompoundDrawableTintBuilder getCompoundDrawableTintBuilder() {
+        return mCompoundDrawableTintBuilder;
     }
 
     public boolean isAdaptiveTextEnabled() {

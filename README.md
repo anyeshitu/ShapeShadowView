@@ -20,7 +20,7 @@ Builder 调用方式为基础，吸收了
 | 阴影 | 真实模糊阴影、扩散、偏移、对称空间、整体隐藏、按边隐藏、位图缓存缩放 |
 | 交互 | Android `RippleDrawable` 水波纹，自动匹配圆角和形状 |
 | 背景 | Color、Bitmap、Vector、XML Drawable，并支持各状态背景和形状裁剪 |
-| 文本 | 状态颜色、渐变、描边、各状态文本内容、固定高度自适应、自动字号、跑马灯 |
+| 文本 | 状态颜色、渐变、描边、各状态文本内容、复合图片状态 tint、固定高度自适应、自动字号、跑马灯 |
 | 复选控件 | CheckBox、RadioButton 的各状态按钮图标 |
 | 图片状态 | ShapeImageView 默认、按下、选中、禁用、聚焦和选择状态 tint 与 src |
 
@@ -74,7 +74,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.anyeshitu:ShapeShadowView:1.1.5")
+    implementation("com.github.anyeshitu:ShapeShadowView:1.1.6")
 }
 ```
 
@@ -82,7 +82,7 @@ Groovy DSL：
 
 ```groovy
 dependencies {
-    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.5'
+    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.6'
 }
 ```
 
@@ -757,39 +757,85 @@ shapeCheckBox.getButtonDrawableBuilder()
 | 图标状态 | `setButtonDrawable`、`setButtonPressedDrawable`、`setButtonCheckedDrawable`、`setButtonDisabledDrawable`、`setButtonFocusedDrawable`、`setButtonSelectedDrawable` |
 | 应用 | `intoButtonDrawable` |
 
-### ShapeImageView 图片 tint
+### ShapeTextView 复合图片 tint
 
-`ShapeImageView` 支持图片 tint 的状态切换，不会改变 Shape 背景、阴影或圆角。未匹配自定义状态时，
-会回退到 `android:tint`；如果没有设置 `android:tint`，则保持原图颜色。
+`ShapeTextView` 支持对 `android:drawableStart`、`android:drawableTop`、`android:drawableEnd`
+和 `android:drawableBottom` 统一设置状态 tint。Android 的 TextView 只提供一份复合图片 tint，
+因此四个方向会使用同一组状态颜色。
 
 | 属性 | 格式 | 说明 |
 | --- | --- | --- |
-| `shape_tint` | color | 默认图片 tint |
+| `shape_enableTint` | color | 普通启用状态 tint；不配置时保留图片自身颜色 |
+| `shape_pressedTint` | color | 按下状态 tint |
+| `shape_checkedTint` | color | checked 状态 tint，供扩展控件使用 |
+| `shape_disableTint` | color | `enabled=false` 时的 tint |
+| `shape_focusedTint` | color | 聚焦状态 tint |
+| `shape_selectedTint` | color | `selected=true` 时的 tint |
+
+`shape_tint` 是 `shape_enableTint` 的兼容名称，`shape_disabledTint` 是
+`shape_disableTint` 的兼容名称；新旧名称同时配置时使用新名称。
+
+下面只配置按下和禁用状态。普通状态没有 `shape_enableTint`，所以
+`@mipmap/obstacles_points` 会显示图片自身颜色：
+
+```xml
+<com.allynav.shape.view.ShapeTextView
+    android:layout_width="120dp"
+    android:layout_height="38dp"
+    android:clickable="true"
+    android:drawableStart="@mipmap/obstacles_points"
+    android:text="障碍点"
+    app:shape_pressedTint="#00C853"
+    app:shape_disableTint="#808080" />
+```
+
+需要普通状态也统一着色时，再添加 `app:shape_enableTint="#FFFFFF"`。Java 动态设置：
+
+```java
+shapeTextView.getCompoundDrawableTintBuilder()
+        .setPressedTintColor(0xFF00C853)
+        .setDisableTintColor(0xFF808080)
+        .intoTint();
+```
+
+按下状态要求控件可点击。`shape_marqueeEnable="true"` 的跑马灯会通过 `selected=true`
+维持滚动，因此跑马灯控件配置 `shape_selectedTint` 后，该颜色通常会持续生效。
+
+### ShapeImageView 图片 tint
+
+`ShapeImageView` 支持图片 tint 的状态切换，不会改变 Shape 背景、阴影或圆角。未匹配自定义状态时，
+会回退到 `android:tint`；如果没有设置 `android:tint`，则保持 `android:src` 图片自身颜色。
+
+| 属性 | 格式 | 说明 |
+| --- | --- | --- |
+| `shape_enableTint` | color | 普通启用状态 tint；不配置时保留图片自身颜色 |
 | `shape_pressedTint` | color | 按下状态 tint |
 | `shape_checkedTint` | color | 选中状态 tint |
-| `shape_disabledTint` | color | 禁用状态 tint |
+| `shape_disableTint` | color | `enabled=false` 时的 tint |
 | `shape_focusedTint` | color | 聚焦状态 tint |
 | `shape_selectedTint` | color | 选择状态 tint |
+
+`shape_tint` 和 `shape_disabledTint` 继续作为兼容名称使用。
 
 ```xml
 <com.allynav.shape.view.ShapeImageView
     android:layout_width="48dp"
     android:layout_height="48dp"
     android:src="@drawable/ic_location"
-    app:shape_tint="#607D8B"
+    app:shape_enableTint="#607D8B"
     app:shape_pressedTint="#1565C0"
     app:shape_selectedTint="#2E7D32"
-    app:shape_disabledTint="#BDBDBD" />
+    app:shape_disableTint="#BDBDBD" />
 ```
 
 Java 动态设置：
 
 ```java
 shapeImageView.getImageTintBuilder()
-        .setTintColor(0xFF607D8B)
+        .setEnableTintColor(0xFF607D8B)
         .setPressedTintColor(0xFF1565C0)
         .setSelectedTintColor(0xFF2E7D32)
-        .setDisabledTintColor(0xFFBDBDBD)
+        .setDisableTintColor(0xFFBDBDBD)
         .intoTint();
 ```
 

@@ -1,24 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-        ShapeImageView 状态 tint 属性。
-        只配置局部状态时，普通状态会恢复控件原有 android:tint；颜色不会替换 src。
-        状态优先级与状态 src 保持一致。
+        ShapeImageView 和 ShapeTextView compound drawable 共用的状态 tint 属性。
+        只配置局部状态时，普通状态会恢复控件原有 tint；颜色不会替换 src/drawable。
+        状态优先级统一为 disabled、pressed、checked、focused、selected、enabled。
     -->
     <!-- 默认图片着色。 -->
     <attr name="shape_tint" format="color" />
+    <!-- 启用状态的普通着色；与 shape_tint 含义相同，若同时配置则本属性优先。 -->
+    <attr name="shape_enableTint" format="color" />
     <!-- 按下、checked、禁用、聚焦和 selected 状态着色。 -->
     <attr name="shape_pressedTint" format="color" />
     <attr name="shape_checkedTint" format="color" />
     <attr name="shape_disabledTint" format="color" />
+    <!-- 禁用状态着色；作为 shape_disabledTint 的简写别名，若同时配置则本属性优先。 -->
+    <attr name="shape_disableTint" format="color" />
     <attr name="shape_focusedTint" format="color" />
     <attr name="shape_selectedTint" format="color" />
 
     <declare-styleable name="ShapeImageTint">
         <attr name="shape_tint" />
+        <attr name="shape_enableTint" />
         <attr name="shape_pressedTint" />
         <attr name="shape_checkedTint" />
         <attr name="shape_disabledTint" />
+        <attr name="shape_disableTint" />
+        <attr name="shape_focusedTint" />
+        <attr name="shape_selectedTint" />
+    </declare-styleable>
+
+    <!-- ShapeTextView 的 drawableStart/Top/End/Bottom 状态 tint。 -->
+    <declare-styleable name="ShapeCompoundDrawableTint">
+        <attr name="shape_tint" />
+        <attr name="shape_enableTint" />
+        <attr name="shape_pressedTint" />
+        <attr name="shape_checkedTint" />
+        <attr name="shape_disabledTint" />
+        <attr name="shape_disableTint" />
         <attr name="shape_focusedTint" />
         <attr name="shape_selectedTint" />
     </declare-styleable>

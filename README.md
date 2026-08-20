@@ -74,7 +74,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.anyeshitu:ShapeShadowView:1.1.7")
+    implementation("com.github.anyeshitu:ShapeShadowView:1.1.8")
 }
 ```
 
@@ -82,7 +82,7 @@ Groovy DSL：
 
 ```groovy
 dependencies {
-    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.7'
+    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.8'
 }
 ```
 
@@ -516,7 +516,7 @@ app:shape_textDisabled="暂不可用"
 可显式开启 `shape_marqueeRequireFullyVisible`。
 
 DataBinding、LiveData 或业务代码动态替换文本时，组件会先停止旧文本的 Marquee，并在新文本
-完成测量和布局后的预绘制阶段重新启动。因此文本可以在短名称和长名称之间反复切换，调用方
+完成测量和布局、进入绘制前重新启动。因此文本可以在短名称和长名称之间反复切换，调用方
 不需要额外切换 `selected`，长文本也不会停留在静态省略号状态。
 
 跑马灯和 `shape_autoFitTextEnable` 可以同时开启。自动字号会在测量阶段完成，控件首帧和后续帧

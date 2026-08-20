@@ -360,6 +360,9 @@ public class ShapeTextView extends AppCompatTextView implements
 
     @Override
     protected void onDraw(Canvas canvas) {
+        // 先让跑马灯委托基于本轮最新 Layout 重建 selected 状态，再进入 TextView 原生绘制；
+        // Android TextView 会在父类 onDraw() 中真正启动和绘制 Marquee。
+        mMarqueeTextDelegate.onDraw();
         // 渐变依赖最终尺寸，先更新 Paint Shader，再执行 TextView 原始绘制。
         mTextColorBuilder.onDraw(this, canvas, getPaint());
         super.onDraw(canvas);

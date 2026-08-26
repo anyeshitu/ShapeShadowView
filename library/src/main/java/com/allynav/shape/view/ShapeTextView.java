@@ -29,10 +29,12 @@ import com.allynav.shape.styleable.ShapeTextViewStyleable;
  *
  * <p>执行顺序为：测量前恢复自适应基准值；正常测量/布局；布局后先自动调整字号；字号
  * 稳定后再压缩行间距或减少行数。跑马灯启用时强制单行，并根据控件及父容器的最终
- * 屏幕可见性维护 selected 状态。</p>
+ * 屏幕可见性维护仅供系统 Marquee 使用的内部 selected 状态；业务 selected 状态仍由调用方
+ * 的 setSelected() 独立控制。</p>
  */
 public class ShapeTextView extends AppCompatTextView implements
-        IGetShapeDrawableBuilder, IGetTextColorBuilder, IGetTextStateDelegate {
+        IGetShapeDrawableBuilder, IGetTextColorBuilder, IGetTextStateDelegate,
+        MarqueeTextDelegate.SelectionHost {
 
     /** 固定高度自适应模式常量，值与 attrs.xml 中枚举保持一致。 */
     public static final int ADAPTIVE_MODE_REDUCE_LINES =
@@ -52,6 +54,10 @@ public class ShapeTextView extends AppCompatTextView implements
     private final AdaptiveTextDelegate mAdaptiveTextDelegate;
     private final AutoFitTextDelegate mAutoFitTextDelegate;
     private final MarqueeTextDelegate mMarqueeTextDelegate;
+    /** 业务代码设置的真实 selected 状态，不受系统跑马灯内部状态影响。 */
+    private boolean mSemanticSelected;
+    /** 系统 Marquee 为启动滚动临时使用的 selected 状态。 */
+    private boolean mMarqueeSelected;
     /**
      * 是否允许父 LinearLayout 使用当前文字基线参与横向子控件定位。
      *
@@ -80,6 +86,9 @@ public class ShapeTextView extends AppCompatTextView implements
     public ShapeTextView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
 
+        // 保存 XML 或父类初始化阶段设置的真实选中状态，后续与 Marquee 状态分开维护。
+        mSemanticSelected = super.isSelected();
+
         // 所有委托先复制 XML 配置，再统一回收 TypedArray 并应用初始外观。
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.ShapeTextView);
         mShapeDrawableBuilder = new ShapeDrawableBuilder(this, attrs, typedArray, STYLEABLE);
@@ -88,7 +97,7 @@ public class ShapeTextView extends AppCompatTextView implements
         mCompoundDrawableTintBuilder = new CompoundDrawableTintBuilder(this, attrs);
         mAdaptiveTextDelegate = new AdaptiveTextDelegate(this, typedArray);
         mAutoFitTextDelegate = new AutoFitTextDelegate(this, typedArray);
-        mMarqueeTextDelegate = new MarqueeTextDelegate(this, typedArray);
+        mMarqueeTextDelegate = new MarqueeTextDelegate(this, typedArray, this);
         // 未显式配置时仅对 AutoFit 控件关闭基线。这样按钮栏无需逐个给父 LinearLayout
         // 添加 baselineAligned=false，同时不改变普通文本在表单中的原生基线对齐能力。
         mTextBaselineConfigured = typedArray.hasValue(
@@ -117,6 +126,98 @@ public class ShapeTextView extends AppCompatTextView implements
             return;
         }
         mTextColorBuilder.setTextColor(color);
+    }
+
+    /**
+     * 设置业务层的真实选中状态。
+     *
+     * <p>系统跑马灯也需要 selected=true，但这个内部状态不应让
+     * {@code shape_textSelectedColor} 等业务状态属性提前生效。因此这里记录业务状态，
+     * 再把“业务选中或跑马灯选中”的结果交给 View 内部，以保留 Android Marquee 的启动条件。</p>
+     */
+    @Override
+    public void setSelected(boolean selected) {
+        mSemanticSelected = selected;
+        super.setSelected(selected || mMarqueeSelected);
+        // 当 Marquee 已经使底层 selected=true 时，业务状态变化不会触发 View 的内部标志变化，
+        // 仍需主动刷新 drawable state，才能让 selected 颜色/背景立即跟随业务状态变化。
+        refreshDrawableState();
+    }
+
+    /**
+     * 过滤仅由跑马灯产生的 selected drawable state。
+     *
+     * <p>TextView.isSelected() 仍然可以看到内部 selected=true，所以原生 Marquee 能继续
+     * 滚动；这里仅从状态数组中移除该内部状态，避免文本颜色、Shape 背景、复合图片 tint
+     * 和状态文本把“正在滚动”误判为“业务选中”。真实业务选中时 mSemanticSelected=true，
+     * selected state 会原样保留。</p>
+     */
+    @Override
+    protected int[] onCreateDrawableState(int extraSpace) {
+        int[] drawableState = super.onCreateDrawableState(extraSpace);
+        if (!mMarqueeSelected || mSemanticSelected) {
+            return drawableState;
+        }
+
+        // 原数组可能带有供子类追加状态的尾部空间，压缩时保留数组长度并把空位放到末尾。
+        int writeIndex = 0;
+        for (int state : drawableState) {
+            if (state != android.R.attr.state_selected) {
+                drawableState[writeIndex++] = state;
+            }
+        }
+        while (writeIndex < drawableState.length) {
+            drawableState[writeIndex++] = 0;
+        }
+        return drawableState;
+    }
+
+    /** 返回业务层的真实 selected 状态，供跑马灯委托保存原始配置。 */
+    @Override
+    public boolean isSemanticSelected() {
+        return mSemanticSelected;
+    }
+
+    /** 恢复业务层 selected 状态，统一经过 ShapeTextView 的状态刷新逻辑。 */
+    @Override
+    public void setSemanticSelected(boolean selected) {
+        setSelected(selected);
+    }
+
+    /** 返回系统跑马灯当前是否使用了内部 selected 状态。 */
+    @Override
+    public boolean isMarqueeSelected() {
+        return mMarqueeSelected;
+    }
+
+    /**
+     * 设置系统跑马灯内部 selected 状态。
+     *
+     * <p>底层 View 仍接收业务状态与内部状态的并集，确保 TextView 的 Marquee 逻辑不变；
+     * onCreateDrawableState() 会根据 mSemanticSelected 决定是否对外暴露 selected。</p>
+     */
+    @Override
+    public void setMarqueeSelected(boolean selected) {
+        mMarqueeSelected = selected;
+        super.setSelected(mSemanticSelected || selected);
+        refreshDrawableState();
+    }
+
+    /**
+     * 强制重建系统 Marquee 的 selected 触发沿。
+     *
+     * <p>业务选中状态可能本来就是 true，此时不能通过普通的内部状态 setter 观察到
+     * false -> true。这里暂时直接清除底层 View 的 selected，再恢复业务与 Marquee 状态
+     * 的并集；mSemanticSelected 始终不变，因此调用方的真实选中意图不会丢失。</p>
+     */
+    @Override
+    public void restartMarqueeSelection() {
+        mMarqueeSelected = false;
+        super.setSelected(false);
+        refreshDrawableState();
+        mMarqueeSelected = true;
+        super.setSelected(true);
+        refreshDrawableState();
     }
 
     @Override

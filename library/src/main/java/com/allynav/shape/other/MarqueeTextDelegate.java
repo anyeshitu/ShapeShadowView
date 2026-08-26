@@ -20,8 +20,36 @@ import com.allynav.shape.R;
  */
 public final class MarqueeTextDelegate {
 
+    /**
+     * 跑马灯选中状态宿主。
+     *
+     * <p>Android 原生 TextView 使用 selected=true 作为启动 Marquee 的条件，但 ShapeView
+     * 的状态颜色、背景和状态文本也会读取同一个 drawable state。ShapeTextView 通过该宿主
+     * 把两种语义分开：Marquee 仍然可以使用 selected 启动滚动，业务 selected 则独立决定
+     * 是否应用 shape_textSelectedColor 等“真实选中”状态。</p>
+     */
+    public interface SelectionHost {
+
+        /** 返回业务代码设置的真实 selected 状态。 */
+        boolean isSemanticSelected();
+
+        /** 恢复或修改业务代码的真实 selected 状态。 */
+        void setSemanticSelected(boolean selected);
+
+        /** 返回当前是否为了启动系统 Marquee 临时设置了 selected。 */
+        boolean isMarqueeSelected();
+
+        /** 修改仅供系统 Marquee 使用的内部 selected 状态。 */
+        void setMarqueeSelected(boolean selected);
+
+        /** 强制执行一次内部 selected 的 false -> true，重建系统 Marquee。 */
+        void restartMarqueeSelection();
+    }
+
     /** 跑马灯所属的 TextView，不持有 Context 等额外对象。 */
     private final TextView mTextView;
+    /** 可选的状态宿主；普通 TextView 没有该能力时继续使用原生 selected 行为。 */
+    private final SelectionHost mSelectionHost;
     /** 复用可见区域对象，避免布局或滚动过程中反复创建 Rect。 */
     private final Rect mVisibleRect = new Rect();
     /**
@@ -69,7 +97,22 @@ public final class MarqueeTextDelegate {
     private ViewTreeObserver mObserver;
 
     public MarqueeTextDelegate(TextView textView, TypedArray typedArray) {
+        this(textView, typedArray, null);
+    }
+
+    /**
+     * 创建跑马灯委托，并注入可选的 selected 状态宿主。
+     *
+     * <p>保留原有两参数构造方法是为了兼容库内部及可能存在的外部调用；没有宿主时，
+     * 委托仍按普通 TextView 的原生方式读写 selected。</p>
+     */
+    public MarqueeTextDelegate(
+            TextView textView,
+            TypedArray typedArray,
+            SelectionHost selectionHost
+    ) {
         mTextView = textView;
+        mSelectionHost = selectionHost;
         mEnabled = typedArray.getBoolean(
                 R.styleable.ShapeTextView_shape_marqueeEnable, false);
         mRepeatLimit = typedArray.getInt(
@@ -217,7 +260,12 @@ public final class MarqueeTextDelegate {
                     mTextView.setMaxLines(mOriginalMaxLines);
                 }
                 mTextView.setEllipsize(mOriginalEllipsize);
-                mTextView.setSelected(mOriginalSelected);
+                // 先清掉仅供 Marquee 使用的 selected。ShapeTextView 会保留运行期间最新的
+                // 业务 selected；普通 TextView 则继续恢复开启前保存的原始 selected 配置。
+                setMarqueeSelected(false);
+                if (mSelectionHost == null) {
+                    setSemanticSelected(mOriginalSelected);
+                }
                 mConfigurationApplied = false;
                 return;
             }
@@ -226,7 +274,7 @@ public final class MarqueeTextDelegate {
                 mOriginalSingleLine = mTextView.getMaxLines() == 1;
                 mOriginalMaxLines = mTextView.getMaxLines();
                 mOriginalEllipsize = mTextView.getEllipsize();
-                mOriginalSelected = mTextView.isSelected();
+                mOriginalSelected = isSemanticSelected();
                 mConfigurationApplied = true;
             }
             mTextView.setSingleLine(true);
@@ -274,13 +322,13 @@ public final class MarqueeTextDelegate {
             return;
         }
 
-        if (mRestartPending || !mTextView.isSelected()) {
+        if (mRestartPending || !isMarqueeSelected()) {
             // Layout 由 TextView 在本轮 onMeasure 中生成，真正的 selected 切换延迟到
             // ShapeTextView.onDraw()，避免预绘制回调和系统 Layout 创建顺序不一致。
             mTextView.invalidate();
             return;
         }
-        mTextView.setSelected(true);
+        setMarqueeSelected(true);
     }
 
     /**
@@ -299,15 +347,14 @@ public final class MarqueeTextDelegate {
             return;
         }
 
-        if (!mRestartPending && mTextView.isSelected()) {
+        if (!mRestartPending && isMarqueeSelected()) {
             return;
         }
 
         // 先清除旧 Marquee，再恢复 selected。mRestartPending 在切换前清零，若状态文本
         // 回调又设置了新文本，onContentMetricsChanged() 会把它重新标记为 true。
         mRestartPending = false;
-        mTextView.setSelected(false);
-        mTextView.setSelected(true);
+        restartMarqueeSelection();
     }
 
     /**
@@ -341,8 +388,56 @@ public final class MarqueeTextDelegate {
     /** 停止当前及待启动的跑马灯，并记录下次显示时必须重新建立滚动状态。 */
     private void stopMarquee() {
         cancelRefresh();
-        mTextView.setSelected(false);
+        setMarqueeSelected(false);
         mRestartPending = true;
+    }
+
+    /** 返回业务层的真实 selected 状态，用于保存和恢复跑马灯配置。 */
+    private boolean isSemanticSelected() {
+        return mSelectionHost != null
+                ? mSelectionHost.isSemanticSelected()
+                : mTextView.isSelected();
+    }
+
+    /** 恢复业务层的真实 selected 状态，不把它误当成 Marquee 内部状态。 */
+    private void setSemanticSelected(boolean selected) {
+        if (mSelectionHost != null) {
+            mSelectionHost.setSemanticSelected(selected);
+        } else {
+            mTextView.setSelected(selected);
+        }
+    }
+
+    /** 返回系统 Marquee 当前使用的 selected 状态。 */
+    private boolean isMarqueeSelected() {
+        return mSelectionHost != null
+                ? mSelectionHost.isMarqueeSelected()
+                : mTextView.isSelected();
+    }
+
+    /** 设置系统 Marquee 使用的 selected 状态，不改变业务真实选中状态。 */
+    private void setMarqueeSelected(boolean selected) {
+        if (mSelectionHost != null) {
+            mSelectionHost.setMarqueeSelected(selected);
+        } else {
+            mTextView.setSelected(selected);
+        }
+    }
+
+    /**
+     * 让系统看到一次完整的 selected 状态切换，以重建已经停止的 Marquee。
+     *
+     * <p>当业务本身处于 selected=true 时，简单调用 setMarqueeSelected(false) 仍会因为
+     * “业务 selected 与 Marquee selected 取并集”而让底层 View 保持 true，系统就观察不到
+     * false -> true，动态文本或 GONE -> VISIBLE 后可能无法重新启动滚动。</p>
+     */
+    private void restartMarqueeSelection() {
+        if (mSelectionHost != null) {
+            mSelectionHost.restartMarqueeSelection();
+        } else {
+            mTextView.setSelected(false);
+            mTextView.setSelected(true);
+        }
     }
 
     /** 注册全局布局和滚动监听，同一次附着周期内只注册一次。 */

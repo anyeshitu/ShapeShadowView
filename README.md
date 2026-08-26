@@ -75,7 +75,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.anyeshitu:ShapeShadowView:1.1.11")
+    implementation("com.github.anyeshitu:ShapeShadowView:1.1.12")
 }
 ```
 
@@ -83,7 +83,7 @@ Groovy DSL：
 
 ```groovy
 dependencies {
-    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.11'
+    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.12'
 }
 ```
 
@@ -94,7 +94,7 @@ dependencies {
 如果宿主工程必须固定 AppCompat 版本，也可以在依赖声明中排除库的传递依赖：
 
 ```groovy
-implementation('com.github.anyeshitu:ShapeShadowView:1.1.11') {
+implementation('com.github.anyeshitu:ShapeShadowView:1.1.12') {
     // 由宿主工程统一提供 AppCompat，避免三方库传递版本改变现有主题行为。
     exclude group: 'androidx.appcompat', module: 'appcompat'
 }
@@ -567,6 +567,11 @@ DataBinding、LiveData 或业务代码动态替换文本时，组件会先停止
 完成测量和布局、进入绘制前重新启动。因此文本可以在短名称和长名称之间反复切换，调用方
 不需要额外切换 `selected`，长文本也不会停留在静态省略号状态。
 
+系统 Marquee 为了滚动会在内部使用 `selected=true`，但库已经将这个内部状态与业务选中状态
+分离。跑马灯滚动不会触发 `shape_textSelectedColor`、`shape_solidSelectedColor`、状态背景、
+复合图片 selected tint 或状态文本；业务代码调用 `setSelected(true)` 时，上述 selected 状态
+仍会正常生效。关闭或重新开启跑马灯也会保留业务原本的 selected 状态。
+
 跑马灯和 `shape_autoFitTextEnable` 可以同时开启。自动字号会在测量阶段完成，控件首帧和后续帧
 使用同一字号、基线与高度，避免动态显示后文字或控件发生位置跳动；缩到最小字号仍然超宽时，
 原生跑马灯继续展示完整文本。
@@ -850,8 +855,9 @@ shapeTextView.getCompoundDrawableTintBuilder()
         .intoTint();
 ```
 
-按下状态要求控件可点击。`shape_marqueeEnable="true"` 的跑马灯会通过 `selected=true`
-维持滚动，因此跑马灯控件配置 `shape_selectedTint` 后，该颜色通常会持续生效。
+按下状态要求控件可点击。跑马灯内部使用的 `selected=true` 不会触发
+`shape_selectedTint`；只有业务代码调用 `setSelected(true)` 或 XML 设置
+`android:selected="true"` 时，才会应用 selected tint。
 
 ### ShapeImageView 图片 tint
 

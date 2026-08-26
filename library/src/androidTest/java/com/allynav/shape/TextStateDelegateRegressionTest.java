@@ -5,12 +5,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.text.Editable;
 import android.view.inputmethod.EditorInfo;
 
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import com.allynav.shape.other.MarqueeTextDelegate;
 import com.allynav.shape.view.ShapeEditText;
 import com.allynav.shape.view.ShapeTextView;
 
@@ -89,6 +91,51 @@ public final class TextStateDelegateRegressionTest {
         assertEquals("普通文本", textView.getText().toString());
     }
 
+    /**
+     * 验证 Marquee 为滚动临时使用 selected 时，不会误触发业务的 selected 文本颜色。
+     * 真实 setSelected(true) 仍必须触发 selected 颜色，保证选项卡等业务状态不受影响。
+     */
+    @Test
+    public void marqueeSelectionDoesNotActivateSemanticSelectedColor() {
+        ShapeTextView textView = new ShapeTextView(mContext);
+        textView.getTextColorBuilder()
+                .setTextColor(Color.BLACK)
+                .setTextSelectedColor(Color.WHITE)
+                .intoTextColor();
+        MarqueeTextDelegate.SelectionHost selectionHost = textView;
+
+        selectionHost.setMarqueeSelected(true);
+        assertEquals(Color.BLACK, textColorForCurrentState(textView));
+
+        textView.setSelected(true);
+        assertEquals(Color.WHITE, textColorForCurrentState(textView));
+
+        selectionHost.restartMarqueeSelection();
+        assertEquals(Color.WHITE, textColorForCurrentState(textView));
+
+        textView.setSelected(false);
+        selectionHost.setMarqueeSelected(false);
+        assertEquals(Color.BLACK, textColorForCurrentState(textView));
+    }
+
+    /** 验证动态关闭跑马灯后，业务原本的 selected 状态仍然保留。 */
+    @Test
+    public void disablingMarqueeRestoresSemanticSelectedState() {
+        ShapeTextView textView = new ShapeTextView(mContext);
+        textView.setSelected(true);
+        textView.setMarqueeEnabled(true);
+        MarqueeTextDelegate.SelectionHost selectionHost = textView;
+        selectionHost.setMarqueeSelected(true);
+
+        // 运行期间业务切换为未选中，关闭跑马灯后也不能恢复成开启前的 true。
+        textView.setSelected(false);
+        textView.setMarqueeEnabled(false);
+
+        assertFalse(textView.isSelected());
+        assertFalse(textView.isSemanticSelected());
+        assertFalse(textView.isMarqueeSelected());
+    }
+
     /** 验证 ShapeEditText 的禁用状态文本不会污染用户文本，恢复可用后仍回到默认值。 */
     @Test
     public void shapeEditTextStateTextDoesNotPolluteDefaultText() {
@@ -142,5 +189,11 @@ public final class TextStateDelegateRegressionTest {
     private static void replaceEditableText(ShapeEditText editText, String text) {
         Editable editable = editText.getText();
         editable.replace(0, editable.length(), text);
+    }
+
+    /** 按控件当前 drawable state 读取 TextColorBuilder 已应用的最终颜色。 */
+    private static int textColorForCurrentState(ShapeTextView textView) {
+        return textView.getTextColors().getColorForState(
+                textView.getDrawableState(), Color.TRANSPARENT);
     }
 }

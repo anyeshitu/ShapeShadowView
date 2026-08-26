@@ -12,6 +12,7 @@ import android.view.inputmethod.EditorInfo;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import com.allynav.shape.layout.ShapeLinearLayout;
 import com.allynav.shape.other.MarqueeTextDelegate;
 import com.allynav.shape.view.ShapeEditText;
 import com.allynav.shape.view.ShapeTextView;
@@ -136,6 +137,40 @@ public final class TextStateDelegateRegressionTest {
         assertFalse(textView.isMarqueeSelected());
     }
 
+    /** 验证跑马灯过滤 selected 时不会污染 Android 复用的状态数组，父容器仍能变为 selected。 */
+    @Test
+    public void marqueeStateFilteringDoesNotCorruptParentSelectedState() {
+        ShapeLinearLayout parent = new ShapeLinearLayout(mContext);
+        ShapeTextView textView = new ShapeTextView(mContext);
+        textView.getTextColorBuilder()
+                .setTextColor(Color.BLACK)
+                .setTextSelectedColor(Color.WHITE)
+                .intoTextColor();
+        parent.addView(textView);
+
+        textView.setMarqueeSelected(true);
+        textView.getDrawableState();
+        parent.setSelected(true);
+
+        assertTrue(containsState(parent.getDrawableState(), android.R.attr.state_selected));
+        assertTrue(textView.isSemanticSelected());
+        assertEquals(Color.WHITE, textColorForCurrentState(textView));
+    }
+
+    /** 验证子控件显式继承父状态时，父业务 selected 不会被跑马灯内部状态过滤掉。 */
+    @Test
+    public void duplicateParentSelectedStateRemainsAvailableDuringMarquee() {
+        ShapeLinearLayout parent = new ShapeLinearLayout(mContext);
+        ShapeTextView textView = new ShapeTextView(mContext);
+        textView.setDuplicateParentStateEnabled(true);
+        parent.addView(textView);
+
+        textView.setMarqueeSelected(true);
+        parent.setSelected(true);
+
+        assertTrue(containsState(textView.getDrawableState(), android.R.attr.state_selected));
+    }
+
     /** 验证 ShapeEditText 的禁用状态文本不会污染用户文本，恢复可用后仍回到默认值。 */
     @Test
     public void shapeEditTextStateTextDoesNotPolluteDefaultText() {
@@ -195,5 +230,15 @@ public final class TextStateDelegateRegressionTest {
     private static int textColorForCurrentState(ShapeTextView textView) {
         return textView.getTextColors().getColorForState(
                 textView.getDrawableState(), Color.TRANSPARENT);
+    }
+
+    /** 判断 DrawableState 是否包含指定状态，避免依赖具体 Android 版本的状态数组顺序。 */
+    private static boolean containsState(int[] drawableState, int expectedState) {
+        for (int state : drawableState) {
+            if (state == expectedState) {
+                return true;
+            }
+        }
+        return false;
     }
 }

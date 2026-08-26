@@ -37,7 +37,7 @@ afterEvaluate {
             create<MavenPublication>("release") {
                 groupId = "com.github.anyeshitu"
                 artifactId = "ShapeShadowView"
-                version = "1.1.12"
+                version = "1.1.13"
                 from(components["release"])
             }
         }

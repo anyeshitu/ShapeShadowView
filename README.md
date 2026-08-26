@@ -75,7 +75,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.anyeshitu:ShapeShadowView:1.1.12")
+    implementation("com.github.anyeshitu:ShapeShadowView:1.1.13")
 }
 ```
 
@@ -83,7 +83,7 @@ Groovy DSL：
 
 ```groovy
 dependencies {
-    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.12'
+    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.13'
 }
 ```
 
@@ -94,7 +94,7 @@ dependencies {
 如果宿主工程必须固定 AppCompat 版本，也可以在依赖声明中排除库的传递依赖：
 
 ```groovy
-implementation('com.github.anyeshitu:ShapeShadowView:1.1.12') {
+implementation('com.github.anyeshitu:ShapeShadowView:1.1.13') {
     // 由宿主工程统一提供 AppCompat，避免三方库传递版本改变现有主题行为。
     exclude group: 'androidx.appcompat', module: 'appcompat'
 }
@@ -571,6 +571,11 @@ DataBinding、LiveData 或业务代码动态替换文本时，组件会先停止
 分离。跑马灯滚动不会触发 `shape_textSelectedColor`、`shape_solidSelectedColor`、状态背景、
 复合图片 selected tint 或状态文本；业务代码调用 `setSelected(true)` 时，上述 selected 状态
 仍会正常生效。关闭或重新开启跑马灯也会保留业务原本的 selected 状态。
+
+父 `ViewGroup` 调用 `setSelected(true)` 时，Android 会把 selected 分发给子
+`ShapeTextView`，因此选项卡容器的选中背景、子控件白字和图标 selected tint 可以同时生效。
+需要让 XML 初始状态或父控件全部 DrawableState 始终由子控件继承时，可额外设置
+`android:duplicateParentState="true"`；跑马灯内部状态不会覆盖或污染父控件状态。
 
 跑马灯和 `shape_autoFitTextEnable` 可以同时开启。自动字号会在测量阶段完成，控件首帧和后续帧
 使用同一字号、基线与高度，避免动态显示后文字或控件发生位置跳动；缩到最小字号仍然超宽时，

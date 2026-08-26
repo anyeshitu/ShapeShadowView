@@ -155,21 +155,22 @@ public class ShapeTextView extends AppCompatTextView implements
     @Override
     protected int[] onCreateDrawableState(int extraSpace) {
         int[] drawableState = super.onCreateDrawableState(extraSpace);
-        if (!mMarqueeSelected || mSemanticSelected) {
+        // duplicateParentState 返回的是父控件的状态数组，父控件的 selected 是真实业务状态，
+        // 不能被跑马灯内部状态过滤；父控件未选中时，数组本身也不会带 selected 状态。
+        if (!mMarqueeSelected || mSemanticSelected || isDuplicateParentStateEnabled()) {
             return drawableState;
         }
 
-        // 原数组可能带有供子类追加状态的尾部空间，压缩时保留数组长度并把空位放到末尾。
+        // View 的默认实现可能返回 StateSet 中复用的共享数组，绝不能原地删除 selected，
+        // 否则会污染其他控件（尤其是父 ShapeLinearLayout）后续取得的 drawable state。
+        int[] filteredState = new int[drawableState.length];
         int writeIndex = 0;
         for (int state : drawableState) {
             if (state != android.R.attr.state_selected) {
-                drawableState[writeIndex++] = state;
+                filteredState[writeIndex++] = state;
             }
         }
-        while (writeIndex < drawableState.length) {
-            drawableState[writeIndex++] = 0;
-        }
-        return drawableState;
+        return filteredState;
     }
 
     /** 返回业务层的真实 selected 状态，供跑马灯委托保存原始配置。 */

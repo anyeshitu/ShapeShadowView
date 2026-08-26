@@ -11,6 +11,7 @@ import com.allynav.shape.builder.TextColorBuilder;
 import com.allynav.shape.config.IGetShapeDrawableBuilder;
 import com.allynav.shape.config.IGetTextColorBuilder;
 import com.allynav.shape.config.IGetTextStateDelegate;
+import com.allynav.shape.other.CloseKeyboardEditTextDelegate;
 import com.allynav.shape.other.TextStateDelegate;
 import com.allynav.shape.styleable.ShapeEditTextStyleable;
 
@@ -20,8 +21,8 @@ import com.allynav.shape.styleable.ShapeEditTextStyleable;
  *    time   : 2021/07/17
  *    desc   : 支持 Shape 背景、状态文字色、渐变和描边的 EditText
  *
- * <p>输入、选择、光标和 IME 行为继续由 AppCompatEditText 负责。本类只同步背景、
- * 文字绘制和可选状态文本，不改变 Editable 的生命周期。</p>
+ * <p>输入和 Editable 生命周期继续由 AppCompatEditText 负责。本类只同步背景、文字绘制、
+ * 可选状态文本，以及一个默认关闭的输入框增强委托。</p>
  */
 public class ShapeEditText extends AppCompatEditText implements
         IGetShapeDrawableBuilder, IGetTextColorBuilder, IGetTextStateDelegate {
@@ -31,6 +32,7 @@ public class ShapeEditText extends AppCompatEditText implements
     private final ShapeDrawableBuilder mShapeDrawableBuilder;
     private final TextColorBuilder mTextColorBuilder;
     private final TextStateDelegate mTextStateDelegate;
+    private final CloseKeyboardEditTextDelegate mCloseKeyboardEditTextDelegate;
 
     public ShapeEditText(Context context) {
         this(context, null);
@@ -48,6 +50,9 @@ public class ShapeEditText extends AppCompatEditText implements
         mShapeDrawableBuilder = new ShapeDrawableBuilder(this, attrs, typedArray, STYLEABLE);
         mTextColorBuilder = new TextColorBuilder(this, typedArray, STYLEABLE);
         mTextStateDelegate = new TextStateDelegate(this, attrs);
+        mCloseKeyboardEditTextDelegate = new CloseKeyboardEditTextDelegate(
+                this, typedArray.getBoolean(
+                        R.styleable.ShapeEditText_shape_closeKeyboardEnable, false));
         typedArray.recycle();
 
         mShapeDrawableBuilder.intoBackground();
@@ -102,7 +107,56 @@ public class ShapeEditText extends AppCompatEditText implements
     }
 
     @Override
+    public void onEditorAction(int actionCode) {
+        // 先执行父类默认处理和外部监听器，再由委托保证完成动作一定收起键盘。
+        super.onEditorAction(actionCode);
+        mCloseKeyboardEditTextDelegate.onEditorAction(actionCode);
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, android.view.KeyEvent event) {
+        // 父类先处理输入内容；委托随后仅拦截已确认的 Enter 抬起事件。
+        boolean handled = super.onKeyUp(keyCode, event);
+        return mCloseKeyboardEditTextDelegate.onKeyUp(keyCode, event) || handled;
+    }
+
+    @Override
+    protected void onFocusChanged(boolean focused, int direction,
+            android.graphics.Rect previouslyFocusedRect) {
+        super.onFocusChanged(focused, direction, previouslyFocusedRect);
+        mCloseKeyboardEditTextDelegate.onFocusChanged(
+                focused, direction, previouslyFocusedRect);
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        // 控件移除时取消委托中等待执行的全选任务，避免页面销毁后仍回调旧控件。
+        mCloseKeyboardEditTextDelegate.onDetachedFromWindow();
+        super.onDetachedFromWindow();
+    }
+
+    @Override
     public TextStateDelegate getTextStateDelegate() {
         return mTextStateDelegate;
+    }
+
+    /** 返回输入框增强委托，可在 Java 中动态开关或主动收起键盘。 */
+    public CloseKeyboardEditTextDelegate getCloseKeyboardEditTextDelegate() {
+        return mCloseKeyboardEditTextDelegate;
+    }
+
+    /** 返回当前是否开启完成收键盘、聚焦全选和失焦隐藏光标能力。 */
+    public boolean isCloseKeyboardEnabled() {
+        return mCloseKeyboardEditTextDelegate.isEnabled();
+    }
+
+    /** 动态开启或关闭输入框增强能力。 */
+    public void setCloseKeyboardEnabled(boolean enabled) {
+        mCloseKeyboardEditTextDelegate.setEnabled(enabled);
+    }
+
+    /** 主动转移焦点并收起软键盘。 */
+    public void closeKeyboard() {
+        mCloseKeyboardEditTextDelegate.closeKeyboard();
     }
 }

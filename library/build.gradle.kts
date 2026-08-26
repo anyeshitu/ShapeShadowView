@@ -35,7 +35,7 @@ afterEvaluate {
             create<MavenPublication>("release") {
                 groupId = "com.github.anyeshitu"
                 artifactId = "ShapeShadowView"
-                version = "1.1.8"
+                version = "1.1.9"
                 from(components["release"])
             }
         }
@@ -43,8 +43,9 @@ afterEvaluate {
 }
 
 dependencies {
-    // 使用 api 暴露父控件类型，消费方 XML 和 Java/Kotlin 可直接引用这些 AndroidX 类。
-    api("androidx.appcompat:appcompat:1.7.1")
+    // Shape 控件公开继承 AppCompat 控件，因此必须暴露该依赖；1.6.1 兼容更多旧项目，
+    // 避免库发布后无意把宿主工程的 AppCompat 解析到 1.7.1。
+    api("androidx.appcompat:appcompat:1.6.1")
     api("androidx.constraintlayout:constraintlayout:2.2.1")
     api("androidx.recyclerview:recyclerview:1.4.0")
 }

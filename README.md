@@ -21,6 +21,7 @@ Builder 调用方式为基础，吸收了
 | 交互 | Android `RippleDrawable` 水波纹，自动匹配圆角和形状 |
 | 背景 | Color、Bitmap、Vector、XML Drawable，并支持各状态背景和形状裁剪 |
 | 文本 | 状态颜色、渐变、描边、各状态文本内容、复合图片状态 tint、固定高度自适应、自动字号、跑马灯 |
+| 输入框 | ShapeEditText 可选完成收键盘、聚焦全选和失焦隐藏光标 |
 | 复选控件 | CheckBox、RadioButton 的各状态按钮图标 |
 | 图片状态 | ShapeImageView 默认、按下、选中、禁用、聚焦和选择状态 tint 与 src |
 
@@ -74,7 +75,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.anyeshitu:ShapeShadowView:1.1.8")
+    implementation("com.github.anyeshitu:ShapeShadowView:1.1.9")
 }
 ```
 
@@ -82,9 +83,27 @@ Groovy DSL：
 
 ```groovy
 dependencies {
-    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.8'
+    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.9'
 }
 ```
+
+### 依赖版本兼容
+
+库中的 Shape 控件继承 AndroidX AppCompat 控件，发布包会声明兼容基线
+`androidx.appcompat:appcompat:1.6.1`。Gradle 会优先采用应用工程或其他依赖显式声明的版本；
+如果宿主工程必须固定 AppCompat 版本，也可以在依赖声明中排除库的传递依赖：
+
+```groovy
+implementation('com.github.anyeshitu:ShapeShadowView:1.1.9') {
+    // 由宿主工程统一提供 AppCompat，避免三方库传递版本改变现有主题行为。
+    exclude group: 'androidx.appcompat', module: 'appcompat'
+}
+```
+
+ShapeShadowView 不会替宿主工程自动切换主题。布局中存在普通 `Button`、
+`MaterialButton` 或使用 AppCompat/Material 组件的弹窗时，承载它们的 Activity、Fragment
+和 Dialog Context 应使用 `Theme.MaterialComponents` 或其子主题；仅使用平台
+`Theme.Material` 的启动窗口不应直接承载业务布局。
 
 ## 本地模块接入
 
@@ -444,6 +463,35 @@ app:shape_textDisabled="暂不可用"
 
 禁用状态优先匹配。请使用 `android:enabled="false"` 进入禁用状态，而不是用
 `android:clickable="false"` 模拟禁用。
+
+### ShapeEditText 输入框增强
+
+`ShapeEditText` 默认保持 `AppCompatEditText` 的原生输入行为。配置
+`shape_closeKeyboardEnable="true"` 后，输入法点击完成/前往按钮或硬件回车会自动收起键盘，
+输入框获得焦点时会全选文本，失去焦点时隐藏光标并清除文本选择。
+
+```xml
+<com.allynav.shape.view.ShapeEditText
+    android:layout_width="match_parent"
+    android:layout_height="48dp"
+    android:hint="请输入名称"
+    app:shape_closeKeyboardEnable="true"
+    app:shape_radius="4dp"
+    app:shape_strokeColor="#B0BEC5"
+    app:shape_strokeSize="1dp" />
+```
+
+该功能不依赖 `setOnEditorActionListener` 或 `setOnFocusChangeListener`，业务代码设置这些
+监听器后，组件自己的行为仍然有效。Java 中也可以动态控制：
+
+```java
+shapeEditText.setCloseKeyboardEnabled(true);
+// 需要时主动收起键盘并转移焦点。
+shapeEditText.closeKeyboard();
+```
+
+也可以通过 `getCloseKeyboardEditTextDelegate()` 获取委托。关闭功能后会恢复输入框创建时的
+IME 选项和光标可见性。
 
 ### ShapeTextView 固定高度自适应
 

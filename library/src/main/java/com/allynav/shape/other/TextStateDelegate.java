@@ -35,7 +35,13 @@ public final class TextStateDelegate {
     private CharSequence mDisabledText;
     private CharSequence mFocusedText;
     private CharSequence mSelectedText;
-    /** 内部 setText 重入保护，避免状态文本被记录成新的默认文本。 */
+    /**
+     * 内部 setText 重入保护。
+     *
+     * <p>状态切换需要暂时把状态文本显示到目标控件，这次 setText 同样会触发
+     * ShapeEditText.onTextChanged。标记可以让 onTextSet 和 onEditableTextChanged 都跳过
+     * 这次内部写入，保证默认文本始终代表业务文本而不是状态展示文本。</p>
+     */
     private boolean mApplyingState;
 
     public TextStateDelegate(@NonNull TextView view, @Nullable AttributeSet attrs) {
@@ -57,6 +63,27 @@ public final class TextStateDelegate {
         if (!mApplyingState) {
             mDefaultText = text;
             refresh();
+        }
+    }
+
+    /**
+     * 接收 TextView 内部 Editable 的实时变化，并把它作为下一次状态恢复的默认文本。
+     *
+     * <p>EditText 通过键盘输入、删除或粘贴时，通常只修改当前的 Editable，不会调用
+     * 控件重写的 {@code setText()}。如果这里只依赖 {@link #onTextSet(CharSequence)}，
+     * 委托就会一直保存初始化时的旧值，失焦触发 {@link #refresh()} 时便会把旧文本写回。
+     * 该方法由 ShapeEditText 的 {@code onTextChanged()} 调用，因此覆盖所有由 Editable
+     * 触发的内容变化，同时不主动刷新状态文本，避免用户编辑过程中被状态文本打断。</p>
+     *
+     * <p>状态文本切换本身也会调用 {@code setText()}，但 {@link #mApplyingState} 在这段
+     * 调用链内保持为 {@code true}。忽略这类回调可以防止“按下文本”“禁用文本”等展示值
+     * 覆盖真正的默认文本，也避免状态刷新出现递归。</p>
+     *
+     * @param text 当前控件内部的最新文本；允许为空，和 TextView 的文本契约保持一致
+     */
+    public void onEditableTextChanged(@Nullable CharSequence text) {
+        if (!mApplyingState) {
+            mDefaultText = text;
         }
     }
 

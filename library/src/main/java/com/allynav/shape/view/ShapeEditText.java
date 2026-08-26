@@ -81,6 +81,24 @@ public class ShapeEditText extends AppCompatEditText implements
         }
     }
 
+    /**
+     * 同步用户直接编辑产生的文本变化。
+     *
+     * <p>键盘输入、删除和粘贴会修改 EditText 的 Editable，并通过这个回调通知控件，
+     * 但不会再次进入 {@link #setText(CharSequence, BufferType)}。如果不在这里同步，
+     * TextStateDelegate 在失焦刷新时只能拿到 XML 或初始化阶段保存的旧文本。</p>
+     *
+     * <p>委托内部状态文本切换也会经过此回调；TextStateDelegate 会识别自身的状态刷新
+     * 保护区间并忽略该次回调，从而只保存用户/业务设置的默认文本。</p>
+     */
+    @Override
+    protected void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
+        super.onTextChanged(text, start, lengthBefore, lengthAfter);
+        if (mTextStateDelegate != null) {
+            mTextStateDelegate.onEditableTextChanged(text);
+        }
+    }
+
     @Override
     protected void drawableStateChanged() {
         super.drawableStateChanged();

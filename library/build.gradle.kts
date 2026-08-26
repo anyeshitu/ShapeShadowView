@@ -12,6 +12,8 @@ android {
     defaultConfig {
         // minSdk 21 覆盖 RippleDrawable 和当前 AppCompat 依赖所需的最低平台。
         minSdk = 21
+        // 为库模块的 Android instrumented regression tests 指定标准 AndroidX 执行器。
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
     }
 
@@ -35,7 +37,7 @@ afterEvaluate {
             create<MavenPublication>("release") {
                 groupId = "com.github.anyeshitu"
                 artifactId = "ShapeShadowView"
-                version = "1.1.10"
+                version = "1.1.11"
                 from(components["release"])
             }
         }
@@ -48,4 +50,10 @@ dependencies {
     api("androidx.appcompat:appcompat:1.6.1")
     api("androidx.constraintlayout:constraintlayout:2.2.1")
     api("androidx.recyclerview:recyclerview:1.4.0")
+
+    // 回归用例需要真实 Android TextView/Editable 生命周期，放在 androidTest 中运行。
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:core:1.6.1")
+    // AndroidJUnitRunner 不由所有 AndroidX Test 扩展包直接传递，显式声明避免执行器缺失。
+    androidTestImplementation("androidx.test:runner:1.6.2")
 }

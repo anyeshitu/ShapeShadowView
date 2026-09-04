@@ -425,6 +425,16 @@ public class ShapeScrollIndicator extends View {
         scrollView.setOverScrollMode(mOldOverScrollMode);
     }
 
+    /**
+     * HorizontalScrollView 与 ScrollView 都需要恢复绑定前的滚动条配置，但两者不是
+     * 继承关系，因此分别提供恢复入口，避免横向指示器在解绑时发生类型转换错误。
+     */
+    private void restoreScrollBars(@NonNull HorizontalScrollView scrollView) {
+        scrollView.setVerticalScrollBarEnabled(mOldVerticalScrollBarEnabled);
+        scrollView.setHorizontalScrollBarEnabled(mOldHorizontalScrollBarEnabled);
+        scrollView.setOverScrollMode(mOldOverScrollMode);
+    }
+
     private float clampProgress(float progress) {
         return Math.max(0f, Math.min(1f, progress));
     }

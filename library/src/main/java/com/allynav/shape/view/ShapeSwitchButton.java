@@ -91,7 +91,7 @@ public class ShapeSwitchButton extends SwitchCompat implements IGetShapeDrawable
     }
 
     @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+    public void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         // 关闭 SwitchCompat 的文字宽度测量，避免默认 compound drawable 的最小尺寸影响轨道。
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         int defaultWidth = dpToPx(DEFAULT_WIDTH_DP) + getPaddingLeft() + getPaddingRight();

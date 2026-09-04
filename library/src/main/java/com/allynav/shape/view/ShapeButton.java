@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import androidx.appcompat.widget.AppCompatButton;
 import com.allynav.shape.R;
 import com.allynav.shape.builder.ShapeDrawableBuilder;
@@ -94,6 +95,24 @@ public class ShapeButton extends AppCompatButton implements
     @Override
     public ShapeDrawableBuilder getShapeDrawableBuilder() {
         return mShapeDrawableBuilder;
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        // 即使业务在 XML 之后再设置 OnClickListener，也不能绕过自定义不可点击状态。
+        if (mShapeDrawableBuilder.shouldBlockTouch()) {
+            return false;
+        }
+        return super.onTouchEvent(event);
+    }
+
+    @Override
+    public boolean performClick() {
+        // Button 的 performClick 可能由键盘或无障碍服务直接调用，也必须遵守该开关。
+        if (mShapeDrawableBuilder.shouldBlockTouch()) {
+            return false;
+        }
+        return super.performClick();
     }
 
     @Override

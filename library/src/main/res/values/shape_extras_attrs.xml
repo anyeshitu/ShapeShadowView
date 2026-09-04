@@ -10,10 +10,61 @@
     <!-- Ripple 颜色，未配置时使用库内低透明度黑色。 -->
     <attr name="shape_rippleColor" format="color" />
 
+    <!--
+        多色渐变数组。数组中可放任意数量的 color 或 color 资源，至少两个颜色时形成
+        线性渐变；配置数组后优先于 shape_*GradientStart/Center/EndColor。
+    -->
+    <attr name="shape_solidGradientColors" format="reference" />
+    <attr name="shape_strokeGradientColors" format="reference" />
+    <!-- 任意角度线性渐变：0 度左到右，90 度下到上，支持正负浮点数。 -->
+    <attr name="shape_solidGradientAngle" format="float" />
+    <attr name="shape_strokeGradientAngle" format="float" />
+
+    <!--
+        ShapeImageView 图片彩色模糊投影。默认关闭；投影从当前 src/tint 后的 Drawable
+        生成，BitmapScale 只控制低分辨率缓存大小，不会改变 ImageView 原图尺寸。
+    -->
+    <attr name="shape_imageBlurShadowEnable" format="boolean" />
+    <attr name="shape_imageBlurShadowRadius" format="dimension" />
+    <attr name="shape_imageBlurShadowOffsetX" format="dimension" />
+    <attr name="shape_imageBlurShadowOffsetY" format="dimension" />
+    <attr name="shape_imageBlurShadowAlpha" format="float" />
+    <attr name="shape_imageBlurShadowBitmapScale" format="float" />
+    <!-- 清晰原图在 View 内的缩放比例；默认 0.86，为四周投影预留可见空间。 -->
+    <attr name="shape_imageBlurShadowImageScale" format="float" />
+
+    <!--
+        独立于 android:enabled 的点击开关。
+        关闭后控件仍保持 enabled=true，只是不响应点击，并可显示专用背景。
+    -->
+    <attr name="shape_clickable" format="boolean" />
+    <!-- shape_clickable=false 时使用的背景，支持颜色、图片、Vector 和 XML Drawable。 -->
+    <attr name="shape_nonClickableBackground" format="reference|color" />
+
     <declare-styleable name="ShapeExtras">
         <attr name="shape_radiusInTop" />
         <attr name="shape_radiusInBottom" />
         <attr name="shape_rippleEnable" />
         <attr name="shape_rippleColor" />
+        <attr name="shape_solidGradientColors" />
+        <attr name="shape_strokeGradientColors" />
+        <attr name="shape_solidGradientAngle" />
+        <attr name="shape_strokeGradientAngle" />
+        <attr name="shape_clickable" />
+        <attr name="shape_nonClickableBackground" />
+    </declare-styleable>
+
+    <!--
+        图片投影独立索引。ShapeImageView 通过该 styleable 读取投影属性，避免把图片专用
+        参数加入所有 ShapeTextView、ShapeButton 和布局的主属性数组。
+    -->
+    <declare-styleable name="ShapeImageBlurShadow">
+        <attr name="shape_imageBlurShadowEnable" />
+        <attr name="shape_imageBlurShadowRadius" />
+        <attr name="shape_imageBlurShadowOffsetX" />
+        <attr name="shape_imageBlurShadowOffsetY" />
+        <attr name="shape_imageBlurShadowAlpha" />
+        <attr name="shape_imageBlurShadowBitmapScale" />
+        <attr name="shape_imageBlurShadowImageScale" />
     </declare-styleable>
 </resources>

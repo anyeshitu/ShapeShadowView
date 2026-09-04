@@ -3,6 +3,7 @@ package com.allynav.shape.view;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.view.View;
 
 import com.allynav.shape.R;
@@ -47,5 +48,23 @@ public class ShapeView extends View implements IGetShapeDrawableBuilder {
     @Override
     public ShapeDrawableBuilder getShapeDrawableBuilder() {
         return mShapeDrawableBuilder;
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        // 这是独立于 enabled 的点击开关；关闭时控件仍可保持 enabled 状态和对应外观。
+        if (mShapeDrawableBuilder.shouldBlockTouch()) {
+            return false;
+        }
+        return super.onTouchEvent(event);
+    }
+
+    @Override
+    public boolean performClick() {
+        // 同时拦截代码或无障碍服务主动发起的点击，避免绕过触摸层的独立状态。
+        if (mShapeDrawableBuilder.shouldBlockTouch()) {
+            return false;
+        }
+        return super.performClick();
     }
 }

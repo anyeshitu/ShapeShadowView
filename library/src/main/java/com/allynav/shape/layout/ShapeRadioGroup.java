@@ -2,12 +2,15 @@ package com.allynav.shape.layout;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Canvas;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.widget.RadioGroup;
 
 import com.allynav.shape.R;
 import com.allynav.shape.builder.ShapeDrawableBuilder;
 import com.allynav.shape.config.IGetShapeDrawableBuilder;
+import com.allynav.shape.other.ShapeViewGroupClipDelegate;
 import com.allynav.shape.styleable.ShapeRadioGroupStyleable;
 
 /**
@@ -24,6 +27,7 @@ public class ShapeRadioGroup extends RadioGroup implements IGetShapeDrawableBuil
     private static final ShapeRadioGroupStyleable STYLEABLE = new ShapeRadioGroupStyleable();
 
     private final ShapeDrawableBuilder mShapeDrawableBuilder;
+    private final ShapeViewGroupClipDelegate mShapeViewGroupClipDelegate;
 
     public ShapeRadioGroup(Context context) {
         this(context, null);
@@ -37,10 +41,38 @@ public class ShapeRadioGroup extends RadioGroup implements IGetShapeDrawableBuil
         typedArray.recycle();
 
         mShapeDrawableBuilder.intoBackground();
+        mShapeViewGroupClipDelegate = new ShapeViewGroupClipDelegate(
+                this, mShapeDrawableBuilder);
     }
 
     @Override
     public ShapeDrawableBuilder getShapeDrawableBuilder() {
         return mShapeDrawableBuilder;
+    }
+
+    @Override
+    protected void dispatchDraw(Canvas canvas) {
+        int saveCount = mShapeViewGroupClipDelegate.save(canvas);
+        try {
+            super.dispatchDraw(canvas);
+        } finally {
+            mShapeViewGroupClipDelegate.restore(canvas, saveCount);
+        }
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (mShapeDrawableBuilder.shouldBlockTouch()) {
+            return false;
+        }
+        return super.onTouchEvent(event);
+    }
+
+    @Override
+    public boolean performClick() {
+        if (mShapeDrawableBuilder.shouldBlockTouch()) {
+            return false;
+        }
+        return super.performClick();
     }
 }

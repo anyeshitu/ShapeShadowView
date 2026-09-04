@@ -208,6 +208,29 @@ public class ShapeDrawable extends Drawable {
      */
     public ShapeDrawable setSolidGradientOrientation(ShapeGradientOrientation orientation) {
         mShapeState.solidGradientOrientation = orientation;
+        // 方向枚举与角度属于两套互斥入口，后调用方向 API 时应恢复枚举语义。
+        mShapeState.solidGradientAngle = Float.NaN;
+        mRectDirty = true;
+        invalidateSelf();
+        return this;
+    }
+
+    /**
+     * 设置任意角度线性填充渐变。
+     *
+     * <p>角度沿用 Android GradientDrawable 的习惯：0 度从左向右，90 度从下向上，
+     * 可传入任意正负值，绘制时会归一化到 0..360 度。该参数只影响线性渐变。</p>
+     */
+    public ShapeDrawable setSolidGradientAngle(float angle) {
+        mShapeState.solidGradientAngle = normalizeGradientAngle(angle);
+        mRectDirty = true;
+        invalidateSelf();
+        return this;
+    }
+
+    /** 清除任意角度配置，恢复使用 setSolidGradientOrientation 设置的方向枚举。 */
+    public ShapeDrawable clearSolidGradientAngle() {
+        mShapeState.solidGradientAngle = Float.NaN;
         mRectDirty = true;
         invalidateSelf();
         return this;
@@ -273,6 +296,24 @@ public class ShapeDrawable extends Drawable {
      */
     public ShapeDrawable setStrokeGradientOrientation(ShapeGradientOrientation orientation) {
         mShapeState.strokeGradientOrientation = orientation;
+        // 保持链式 API 的“最后一次设置生效”：设置方向后不再沿用旧角度。
+        mShapeState.strokeGradientAngle = Float.NaN;
+        mRectDirty = true;
+        invalidateSelf();
+        return this;
+    }
+
+    /** 设置任意角度线性描边渐变，角度定义与 setSolidGradientAngle 一致。 */
+    public ShapeDrawable setStrokeGradientAngle(float angle) {
+        mShapeState.strokeGradientAngle = normalizeGradientAngle(angle);
+        mRectDirty = true;
+        invalidateSelf();
+        return this;
+    }
+
+    /** 清除任意角度描边渐变，恢复使用方向枚举。 */
+    public ShapeDrawable clearStrokeGradientAngle() {
+        mShapeState.strokeGradientAngle = Float.NaN;
         mRectDirty = true;
         invalidateSelf();
         return this;
@@ -886,8 +927,10 @@ public class ShapeDrawable extends Drawable {
             switch (st.solidGradientType) {
                 case ShapeGradientType.LINEAR_GRADIENT: {
                     final float level = st.useLevel ? getLevel() / 10000f : 1f;
-                    float[] coordinate = computeLinearGradientCoordinate(
-                        mLayoutDirection, mRect, level, st.solidGradientOrientation);
+                    float[] coordinate = Float.isNaN(st.solidGradientAngle) ?
+                            computeLinearGradientCoordinate(
+                                    mLayoutDirection, mRect, level, st.solidGradientOrientation) :
+                            computeLinearGradientCoordinate(mRect, level, st.solidGradientAngle);
                     mSolidPaint.setShader(new LinearGradient(coordinate[0], coordinate[1], coordinate[2], coordinate[3],
                         solidColors, st.positions, TileMode.CLAMP));
                     break;
@@ -953,8 +996,10 @@ public class ShapeDrawable extends Drawable {
 
         if (strokeColors != null) {
             final float level = st.useLevel ? getLevel() / 10000f : 1f;
-            float[] coordinate = computeLinearGradientCoordinate(
-                mLayoutDirection, mRect, level, st.strokeGradientOrientation);
+            float[] coordinate = Float.isNaN(st.strokeGradientAngle) ?
+                    computeLinearGradientCoordinate(
+                            mLayoutDirection, mRect, level, st.strokeGradientOrientation) :
+                    computeLinearGradientCoordinate(mRect, level, st.strokeGradientAngle);
             mStrokePaint.setShader(new LinearGradient(coordinate[0], coordinate[1], coordinate[2], coordinate[3],
                 strokeColors, st.positions, TileMode.CLAMP));
 
@@ -1097,6 +1142,37 @@ public class ShapeDrawable extends Drawable {
                 break;
         }
         return new float[] {x0, y0, x1, y1};
+    }
+
+    /**
+     * 计算任意角度渐变线段，使线段完整覆盖矩形在该方向上的投影。
+     *
+     * <p>Canvas 的 Y 轴向下，因此角度对应的 Y 分量需要取负值。使用矩形半宽、半高
+     * 在方向向量上的投影和作为半长度，可以避免非正方形控件在斜向渐变时两角提前
+     * 进入端点颜色。level 只收缩终点，不移动起点，与旧方向枚举的进度语义一致。</p>
+     */
+    static float[] computeLinearGradientCoordinate(RectF rect, float level, float angle) {
+        double radians = Math.toRadians(normalizeGradientAngle(angle));
+        float directionX = (float) Math.cos(radians);
+        float directionY = (float) -Math.sin(radians);
+        float centerX = rect.centerX();
+        float centerY = rect.centerY();
+        float halfLength = Math.abs(directionX) * rect.width() / 2f +
+                Math.abs(directionY) * rect.height() / 2f;
+
+        float startX = centerX - directionX * halfLength;
+        float startY = centerY - directionY * halfLength;
+        float fullEndX = centerX + directionX * halfLength;
+        float fullEndY = centerY + directionY * halfLength;
+        float endX = startX + (fullEndX - startX) * level;
+        float endY = startY + (fullEndY - startY) * level;
+        return new float[] {startX, startY, endX, endY};
+    }
+
+    /** 将任意正负角度稳定归一化，避免长时间动画后浮点值持续增大。 */
+    private static float normalizeGradientAngle(float angle) {
+        float normalized = angle % 360f;
+        return normalized < 0f ? normalized + 360f : normalized;
     }
 
     /**

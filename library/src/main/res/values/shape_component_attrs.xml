@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+        ShapeSwitchButton 的滑块和动画属性。
+        开关轨道本身复用 ShapeButton/ShapeCheckBox 的 shape_* 属性，
+        因此 shape_solidColor 是关闭轨道色，shape_solidCheckedColor 是打开轨道色。
+    -->
+    <attr name="shape_switchThumbColor" format="color" />
+    <attr name="shape_switchThumbCheckedColor" format="color" />
+    <attr name="shape_switchThumbPressedColor" format="color" />
+    <attr name="shape_switchThumbDisabledColor" format="color" />
+    <attr name="shape_switchThumbInset" format="dimension" />
+    <attr name="shape_switchAnimationEnable" format="boolean" />
+
+    <declare-styleable name="ShapeSwitchButton">
+        <!-- ShapeSwitchButton 的轨道直接使用统一 Shape 背景属性。 -->
+        <attr name="shape_type" />
+        <attr name="shape_width" />
+        <attr name="shape_height" />
+        <attr name="shape_radius" />
+        <attr name="shape_radiusInTopLeft" />
+        <attr name="shape_radiusInTopStart" />
+        <attr name="shape_radiusInTopRight" />
+        <attr name="shape_radiusInTopEnd" />
+        <attr name="shape_radiusInBottomLeft" />
+        <attr name="shape_radiusInBottomStart" />
+        <attr name="shape_radiusInBottomRight" />
+        <attr name="shape_radiusInBottomEnd" />
+        <attr name="shape_solidColor" />
+        <attr name="shape_solidPressedColor" />
+        <attr name="shape_solidCheckedColor" />
+        <attr name="shape_solidDisabledColor" />
+        <attr name="shape_solidFocusedColor" />
+        <attr name="shape_solidSelectedColor" />
+        <attr name="shape_solidGradientStartColor" />
+        <attr name="shape_solidGradientCenterColor" />
+        <attr name="shape_solidGradientEndColor" />
+        <attr name="shape_solidGradientOrientation" />
+        <attr name="shape_solidGradientType" />
+        <attr name="shape_solidGradientCenterX" />
+        <attr name="shape_solidGradientCenterY" />
+        <attr name="shape_solidGradientRadius" />
+        <attr name="shape_strokeColor" />
+        <attr name="shape_strokePressedColor" />
+        <attr name="shape_strokeCheckedColor" />
+        <attr name="shape_strokeDisabledColor" />
+        <attr name="shape_strokeFocusedColor" />
+        <attr name="shape_strokeSelectedColor" />
+        <attr name="shape_strokeGradientStartColor" />
+        <attr name="shape_strokeGradientCenterColor" />
+        <attr name="shape_strokeGradientEndColor" />
+        <attr name="shape_strokeGradientOrientation" />
+        <attr name="shape_strokeSize" />
+        <attr name="shape_strokeDashSize" />
+        <attr name="shape_strokeDashGap" />
+        <attr name="shape_shadowSize" />
+        <attr name="shape_shadowColor" />
+        <attr name="shape_shadowOffsetX" />
+        <attr name="shape_shadowOffsetY" />
+        <attr name="shape_ringInnerRadiusSize" />
+        <attr name="shape_ringInnerRadiusRatio" />
+        <attr name="shape_ringThicknessSize" />
+        <attr name="shape_ringThicknessRatio" />
+        <attr name="shape_lineGravity" />
+        <attr name="shape_switchThumbColor" />
+        <attr name="shape_switchThumbCheckedColor" />
+        <attr name="shape_switchThumbPressedColor" />
+        <attr name="shape_switchThumbDisabledColor" />
+        <attr name="shape_switchThumbInset" />
+        <attr name="shape_switchAnimationEnable" />
+    </declare-styleable>
+
+    <!--
+        ShapeScrollIndicator 的方向、颜色、长度和自动隐藏属性。
+        shape_indicatorLength 使用 0 到 1 的比例表示滑块长度占轨道长度的比例。
+    -->
+    <attr name="shape_indicatorOrientation">
+        <enum name="vertical" value="0" />
+        <enum name="horizontal" value="1" />
+    </attr>
+    <attr name="shape_indicatorTrackColor" format="color" />
+    <attr name="shape_indicatorColor" format="color" />
+    <attr name="shape_indicatorLength" format="float" />
+    <attr name="shape_indicatorTrackRound" format="boolean" />
+    <attr name="shape_indicatorAnimationDuration" format="integer" />
+    <attr name="shape_indicatorHideDelay" format="integer" />
+    <attr name="shape_indicatorAlwaysShow" format="boolean" />
+
+    <declare-styleable name="ShapeScrollIndicator">
+        <attr name="shape_indicatorOrientation" />
+        <attr name="shape_indicatorTrackColor" />
+        <attr name="shape_indicatorColor" />
+        <attr name="shape_indicatorLength" />
+        <attr name="shape_indicatorTrackRound" />
+        <attr name="shape_indicatorAnimationDuration" />
+        <attr name="shape_indicatorHideDelay" />
+        <attr name="shape_indicatorAlwaysShow" />
+    </declare-styleable>
+
+</resources>

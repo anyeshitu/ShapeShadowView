@@ -72,6 +72,8 @@ public final class ShapeDrawableBuilder {
     /** 填充渐变参数。 */
     private int[] mSolidGradientColors;
     private ShapeGradientOrientation mSolidGradientOrientation;
+    /** 任意角度填充渐变；NaN 表示使用 mSolidGradientOrientation。 */
+    private float mSolidGradientAngle = Float.NaN;
     @ShapeGradientTypeLimit
     private int mSolidGradientType;
     private float mSolidGradientCenterX;
@@ -88,6 +90,8 @@ public final class ShapeDrawableBuilder {
 
     private int[] mStrokeGradientColors;
     private ShapeGradientOrientation mStrokeGradientOrientation;
+    /** 任意角度描边渐变；NaN 表示使用 mStrokeGradientOrientation。 */
+    private float mStrokeGradientAngle = Float.NaN;
 
     private int mStrokeSize;
     private int mStrokeDashSize;
@@ -125,6 +129,11 @@ public final class ShapeDrawableBuilder {
     private Drawable mDisabledBackgroundDrawable;
     private Drawable mFocusedBackgroundDrawable;
     private Drawable mSelectedBackgroundDrawable;
+    /** shape_clickable=false 时显示的独立背景；不参与 android:enabled 状态。 */
+    private Drawable mNonClickableBackgroundDrawable;
+    /** 只有显式配置 shape_clickable 或通过 Builder 设置后，才接管 View 的 clickable。 */
+    private boolean mShapeClickableConfigured;
+    private boolean mShapeClickable = true;
     private boolean mClipExistingBackground;
 
     public ShapeDrawableBuilder(View view, TypedArray typedArray, IShapeDrawableStyleable styleable) {
@@ -196,6 +205,27 @@ public final class ShapeDrawableBuilder {
                     R.styleable.ShapeExtras_shape_rippleEnable, false);
             mRippleColor = extrasArray.getColor(
                     R.styleable.ShapeExtras_shape_rippleColor, 0x24000000);
+            // 多色数组是对原有 start/center/end 三色入口的扩展，配置后优先使用数组。
+            mSolidGradientColors = readColorArray(extrasArray,
+                    R.styleable.ShapeExtras_shape_solidGradientColors);
+            mStrokeGradientColors = readColorArray(extrasArray,
+                    R.styleable.ShapeExtras_shape_strokeGradientColors);
+            if (extrasArray.hasValue(R.styleable.ShapeExtras_shape_solidGradientAngle)) {
+                mSolidGradientAngle = extrasArray.getFloat(
+                        R.styleable.ShapeExtras_shape_solidGradientAngle, Float.NaN);
+            }
+            if (extrasArray.hasValue(R.styleable.ShapeExtras_shape_strokeGradientAngle)) {
+                mStrokeGradientAngle = extrasArray.getFloat(
+                        R.styleable.ShapeExtras_shape_strokeGradientAngle, Float.NaN);
+            }
+            // 这两个属性与 android:enabled 分离，必须使用 ShapeExtras 中的值读取，
+            // 避免额外创建重复的 styleable，也保证所有 Shape 控件共用同一套属性索引。
+            mShapeClickableConfigured = extrasArray.hasValue(
+                    R.styleable.ShapeExtras_shape_clickable);
+            mShapeClickable = extrasArray.getBoolean(
+                    R.styleable.ShapeExtras_shape_clickable, true);
+            mNonClickableBackgroundDrawable = extrasArray.getDrawable(
+                    R.styleable.ShapeExtras_shape_nonClickableBackground);
             extrasArray.recycle();
 
             TypedArray backgroundArray = view.getContext().obtainStyledAttributes(
@@ -273,7 +303,9 @@ public final class ShapeDrawableBuilder {
             mBottomRightRadius = typedArray.getDimensionPixelSize(styleable.getRadiusInBottomRightStyleable(), radius);
         }
 
-        if (typedArray.hasValue(styleable.getSolidGradientStartColorStyleable()) && typedArray.hasValue(styleable.getSolidGradientEndColorStyleable())) {
+        if (mSolidGradientColors == null &&
+                typedArray.hasValue(styleable.getSolidGradientStartColorStyleable()) &&
+                typedArray.hasValue(styleable.getSolidGradientEndColorStyleable())) {
             if (typedArray.hasValue(styleable.getSolidGradientCenterColorStyleable())) {
                 mSolidGradientColors = new int[] {typedArray.getColor(styleable.getSolidGradientStartColorStyleable(), NO_COLOR),
                         typedArray.getColor(styleable.getSolidGradientCenterColorStyleable(), NO_COLOR),
@@ -308,7 +340,9 @@ public final class ShapeDrawableBuilder {
             mStrokeSelectedColor = typedArray.getColor(styleable.getStrokeSelectedColorStyleable(), NO_COLOR);
         }
 
-        if (typedArray.hasValue(styleable.getStrokeGradientStartColorStyleable()) && typedArray.hasValue(styleable.getStrokeGradientEndColorStyleable())) {
+        if (mStrokeGradientColors == null &&
+                typedArray.hasValue(styleable.getStrokeGradientStartColorStyleable()) &&
+                typedArray.hasValue(styleable.getStrokeGradientEndColorStyleable())) {
             if (typedArray.hasValue(styleable.getStrokeGradientCenterColorStyleable())) {
                 mStrokeGradientColors = new int[] {typedArray.getColor(styleable.getStrokeGradientStartColorStyleable(), NO_COLOR),
                         typedArray.getColor(styleable.getStrokeGradientCenterColorStyleable(), NO_COLOR),
@@ -455,6 +489,7 @@ public final class ShapeDrawableBuilder {
     public ShapeDrawableBuilder setSolidColor(int color) {
         mSolidColor = color;
         clearSolidGradientColors();
+        clearSolidGradientAngle();
         return this;
     }
 
@@ -521,7 +556,8 @@ public final class ShapeDrawableBuilder {
     }
 
     public ShapeDrawableBuilder setSolidGradientColors(int[] colors) {
-        mSolidGradientColors = colors;
+        // 复制调用方数组，避免业务后续修改数组内容时悄悄改变控件外观。
+        mSolidGradientColors = colors == null ? null : colors.clone();
         return this;
     }
 
@@ -532,7 +568,7 @@ public final class ShapeDrawableBuilder {
 
     public boolean isSolidGradientColorsEnable() {
         return mSolidGradientColors != null &&
-                mSolidGradientColors.length > 0;
+                mSolidGradientColors.length > 1;
     }
 
     public void clearSolidGradientColors() {
@@ -541,7 +577,26 @@ public final class ShapeDrawableBuilder {
 
     public ShapeDrawableBuilder setSolidGradientOrientation(ShapeGradientOrientation orientation) {
         mSolidGradientOrientation = orientation;
+        // 方向枚举与任意角度是互斥入口，最后一次设置的方式拥有优先权。
+        mSolidGradientAngle = Float.NaN;
         return this;
+    }
+
+    /** 设置填充线性渐变角度；0 度为左到右，90 度为下到上，支持任意正负角度。 */
+    public ShapeDrawableBuilder setSolidGradientAngle(float angle) {
+        mSolidGradientAngle = angle;
+        return this;
+    }
+
+    /** 清除填充渐变角度，恢复使用方向枚举。 */
+    public ShapeDrawableBuilder clearSolidGradientAngle() {
+        mSolidGradientAngle = Float.NaN;
+        return this;
+    }
+
+    /** 返回填充渐变角度；NaN 表示当前未配置角度。 */
+    public float getSolidGradientAngle() {
+        return mSolidGradientAngle;
     }
 
     public ShapeGradientOrientation getSolidGradientOrientation() {
@@ -588,6 +643,7 @@ public final class ShapeDrawableBuilder {
     public ShapeDrawableBuilder setStrokeColor(int color) {
         mStrokeColor = color;
         clearStrokeGradientColors();
+        clearStrokeGradientAngle();
         return this;
     }
 
@@ -654,7 +710,8 @@ public final class ShapeDrawableBuilder {
     }
 
     public ShapeDrawableBuilder setStrokeGradientColors(int[] colors) {
-        mStrokeGradientColors = colors;
+        // 与填充渐变保持同样的数组隔离规则，防止外部可变数组污染 Drawable 状态。
+        mStrokeGradientColors = colors == null ? null : colors.clone();
         return this;
     }
 
@@ -665,7 +722,7 @@ public final class ShapeDrawableBuilder {
 
     public boolean isStrokeGradientColorsEnable() {
         return mStrokeGradientColors != null &&
-                mStrokeGradientColors.length > 0;
+                mStrokeGradientColors.length > 1;
     }
 
     public void clearStrokeGradientColors() {
@@ -674,7 +731,25 @@ public final class ShapeDrawableBuilder {
 
     public ShapeDrawableBuilder setStrokeGradientOrientation(ShapeGradientOrientation orientation) {
         mStrokeGradientOrientation = orientation;
+        mStrokeGradientAngle = Float.NaN;
         return this;
+    }
+
+    /** 设置描边线性渐变角度，角度定义与 setSolidGradientAngle 相同。 */
+    public ShapeDrawableBuilder setStrokeGradientAngle(float angle) {
+        mStrokeGradientAngle = angle;
+        return this;
+    }
+
+    /** 清除描边渐变角度，恢复使用方向枚举。 */
+    public ShapeDrawableBuilder clearStrokeGradientAngle() {
+        mStrokeGradientAngle = Float.NaN;
+        return this;
+    }
+
+    /** 返回描边渐变角度；NaN 表示当前未配置角度。 */
+    public float getStrokeGradientAngle() {
+        return mStrokeGradientAngle;
     }
 
     public ShapeGradientOrientation getStrokeGradientOrientation() {
@@ -751,6 +826,83 @@ public final class ShapeDrawableBuilder {
     public boolean isShadowEnable() {
         // 阴影半径大于 0 且未主动隐藏时才创建 ShadowDrawable。
         return mShadowSize > 0 && !mShadowHidden;
+    }
+
+    /**
+     * 计算当前阴影占用的四边空间。
+     *
+     * <p>容器的子 View 裁剪需要使用与背景 Drawable 相同的内容边界，因此这里复用
+     * ShadowDrawable 的空间规则，而不是直接读取 View 当前 padding。View 的原始 padding
+     * 还包含业务内容间距，不能作为圆角裁剪路径的外边界。</p>
+     */
+    public void getShadowInsets(@NonNull Rect outInsets) {
+        if (!isShadowEnable()) {
+            outInsets.setEmpty();
+            return;
+        }
+
+        float extent = mShadowSize + mShadowSpread;
+        if (mShadowSymmetry) {
+            int horizontal = (int) Math.ceil(extent + Math.abs(mShadowOffsetX));
+            int vertical = (int) Math.ceil(extent + Math.abs(mShadowOffsetY));
+            outInsets.set(
+                    mShadowHiddenLeft ? 0 : horizontal,
+                    mShadowHiddenTop ? 0 : vertical,
+                    mShadowHiddenRight ? 0 : horizontal,
+                    mShadowHiddenBottom ? 0 : vertical);
+            return;
+        }
+
+        outInsets.set(
+                mShadowHiddenLeft ? 0 : (int) Math.ceil(extent + Math.max(0, -mShadowOffsetX)),
+                mShadowHiddenTop ? 0 : (int) Math.ceil(extent + Math.max(0, -mShadowOffsetY)),
+                mShadowHiddenRight ? 0 : (int) Math.ceil(extent + Math.max(0, mShadowOffsetX)),
+                mShadowHiddenBottom ? 0 : (int) Math.ceil(extent + Math.max(0, mShadowOffsetY)));
+    }
+
+    /** 返回是否显式配置了独立的 shape_clickable 行为。 */
+    public boolean isShapeClickableConfigured() {
+        return mShapeClickableConfigured;
+    }
+
+    /** 返回当前独立点击开关；未配置时默认为 true。 */
+    public boolean isShapeClickable() {
+        return mShapeClickable;
+    }
+
+    /**
+     * 返回是否应该拦截触摸事件。
+     *
+     * <p>单独判断配置标志，避免库为了默认状态而把 ImageView、普通 View 等控件强制变成
+     * clickable；只有调用方明确使用 shape_clickable 时，才启用独立点击语义。</p>
+     */
+    public boolean shouldBlockTouch() {
+        return mShapeClickableConfigured && !mShapeClickable;
+    }
+
+    /** 设置独立点击开关；应用到背景和 View 事件行为仍需调用 intoBackground。 */
+    public ShapeDrawableBuilder setShapeClickable(boolean clickable) {
+        mShapeClickableConfigured = true;
+        mShapeClickable = clickable;
+        return this;
+    }
+
+    /** 设置 shape_clickable=false 时显示的背景 Drawable。 */
+    public ShapeDrawableBuilder setNonClickableBackgroundDrawable(@Nullable Drawable drawable) {
+        mNonClickableBackgroundDrawable = drawable;
+        return this;
+    }
+
+    /** 设置 shape_clickable=false 时显示的纯色背景。 */
+    public ShapeDrawableBuilder setNonClickableBackgroundColor(int color) {
+        mNonClickableBackgroundDrawable = new ColorDrawable(color);
+        return this;
+    }
+
+    /** 返回 shape_clickable=false 时配置的背景 Drawable。 */
+    @Nullable
+    public Drawable getNonClickableBackgroundDrawable() {
+        return mNonClickableBackgroundDrawable;
     }
 
     public ShapeDrawableBuilder setShadowHidden(boolean hidden) {
@@ -918,6 +1070,8 @@ public final class ShapeDrawableBuilder {
         boolean hasDrawableState = mPressedBackgroundDrawable != null ||
                 mCheckedBackgroundDrawable != null || mDisabledBackgroundDrawable != null ||
                 mFocusedBackgroundDrawable != null || mSelectedBackgroundDrawable != null;
+        boolean hasNonClickableBackground = !mShapeClickable &&
+                mNonClickableBackgroundDrawable != null;
 
         boolean hasGeneratedShape = isSolidGradientColorsEnable() || isStrokeGradientColorsEnable() ||
                 mSolidColor != NO_COLOR || hasSolidColorState ||
@@ -925,13 +1079,17 @@ public final class ShapeDrawableBuilder {
 
         Drawable currentBackground = unwrapDecoratedDrawable(mView.getBackground());
 
-        if (!hasGeneratedShape && mBackgroundDrawable == null && !hasDrawableState) {
+        if (!hasGeneratedShape && mBackgroundDrawable == null && !hasDrawableState &&
+                !hasNonClickableBackground) {
             return decorateDrawable(mClipExistingBackground ?
                     prepareCustomDrawable(currentBackground) : currentBackground);
         }
 
         Drawable defaultDrawable;
-        if (mBackgroundDrawable != null) {
+        if (hasNonClickableBackground) {
+            // 独立不可点击背景优先于普通背景，但不会改变 View 的 enabled 状态。
+            defaultDrawable = prepareCustomDrawable(mNonClickableBackgroundDrawable);
+        } else if (mBackgroundDrawable != null) {
             defaultDrawable = prepareCustomDrawable(mBackgroundDrawable);
         } else if (hasGeneratedShape) {
             Drawable defaultSource = currentBackground;
@@ -958,19 +1116,25 @@ public final class ShapeDrawableBuilder {
             stateListDrawable.setDisabledDrawable(buildStateDrawable(
                     mDisabledBackgroundDrawable, mSolidDisabledColor, mStrokeDisabledColor));
         }
-        if (mPressedBackgroundDrawable != null || mSolidPressedColor != null || mStrokePressedColor != null) {
+        if (mShapeClickable && (mPressedBackgroundDrawable != null ||
+                mSolidPressedColor != null || mStrokePressedColor != null)) {
             stateListDrawable.setPressedDrawable(buildStateDrawable(
                     mPressedBackgroundDrawable, mSolidPressedColor, mStrokePressedColor));
         }
-        if (mCheckedBackgroundDrawable != null || mSolidCheckedColor != null || mStrokeCheckedColor != null) {
+        // checked、focused、selected 与 enabled 相互独立，即使控件不可点击，
+        // 业务通过 setChecked/setSelected 或键盘获得焦点时仍应正常显示对应状态。
+        if (mCheckedBackgroundDrawable != null || mSolidCheckedColor != null ||
+                mStrokeCheckedColor != null) {
             stateListDrawable.setCheckDrawable(buildStateDrawable(
                     mCheckedBackgroundDrawable, mSolidCheckedColor, mStrokeCheckedColor));
         }
-        if (mFocusedBackgroundDrawable != null || mSolidFocusedColor != null || mStrokeFocusedColor != null) {
+        if (mFocusedBackgroundDrawable != null || mSolidFocusedColor != null ||
+                mStrokeFocusedColor != null) {
             stateListDrawable.setFocusedDrawable(buildStateDrawable(
                     mFocusedBackgroundDrawable, mSolidFocusedColor, mStrokeFocusedColor));
         }
-        if (mSelectedBackgroundDrawable != null || mSolidSelectedColor != null || mStrokeSelectedColor != null) {
+        if (mSelectedBackgroundDrawable != null || mSolidSelectedColor != null ||
+                mStrokeSelectedColor != null) {
             stateListDrawable.setSelectDrawable(buildStateDrawable(
                     mSelectedBackgroundDrawable, mSolidSelectedColor, mStrokeSelectedColor));
         }
@@ -1007,11 +1171,21 @@ public final class ShapeDrawableBuilder {
                 .setSolidGradientRadius(mSolidGradientRadius)
                 .setSolidGradientCenterX(mSolidGradientCenterX)
                 .setSolidGradientCenterY(mSolidGradientCenterY);
+        if (Float.isNaN(mSolidGradientAngle)) {
+            drawable.clearSolidGradientAngle();
+        } else {
+            drawable.setSolidGradientAngle(mSolidGradientAngle);
+        }
 
         drawable.setStrokeGradientOrientation(mStrokeGradientOrientation)
                 .setStrokeSize(mStrokeSize)
                 .setStrokeDashSize(mStrokeDashSize)
                 .setStrokeDashGap(mStrokeDashGap);
+        if (Float.isNaN(mStrokeGradientAngle)) {
+            drawable.clearStrokeGradientAngle();
+        } else {
+            drawable.setStrokeGradientAngle(mStrokeGradientAngle);
+        }
 
         // 阴影由外层 ShadowDrawable 绘制并预留边界，内容 Drawable 关闭旧阴影。
         drawable.setShadowSize(0)
@@ -1070,6 +1244,10 @@ public final class ShapeDrawableBuilder {
         if (drawable != null) {
             mView.setBackground(drawable);
             applyContentPadding(drawable);
+        }
+        if (mShapeClickableConfigured) {
+            // 仅在显式使用 shape_clickable 时修改 clickable，避免改变普通控件默认交互。
+            mView.setClickable(mShapeClickable);
         }
     }
 
@@ -1187,6 +1365,7 @@ public final class ShapeDrawableBuilder {
     public void clearBackground() {
         mSolidColor = NO_COLOR;
         mSolidGradientColors = null;
+        mSolidGradientAngle = Float.NaN;
         mSolidPressedColor = null;
         mSolidCheckedColor = null;
         mSolidDisabledColor = null;
@@ -1195,6 +1374,7 @@ public final class ShapeDrawableBuilder {
 
         mStrokeColor = NO_COLOR;
         mStrokeGradientColors = null;
+        mStrokeGradientAngle = Float.NaN;
         mStrokePressedColor = null;
         mStrokeCheckedColor = null;
         mStrokeDisabledColor = null;
@@ -1224,6 +1404,41 @@ public final class ShapeDrawableBuilder {
             layoutDirection = View.LAYOUT_DIRECTION_LTR;
         }
         return layoutDirection;
+    }
+
+    /**
+     * 从 XML 的 color-array 资源读取颜色。
+     *
+     * <p>TypedArray 只能取得数组资源 ID，真正的数组需要再次通过 Resources.obtainTypedArray
+     * 打开；这里统一负责回收临时 TypedArray，并在资源类型不合法时安全回退为未配置。</p>
+     */
+    @Nullable
+    private int[] readColorArray(@NonNull TypedArray sourceArray, int attributeIndex) {
+        if (attributeIndex < 0 || !sourceArray.hasValue(attributeIndex)) {
+            return null;
+        }
+        int resourceId = sourceArray.getResourceId(attributeIndex, 0);
+        if (resourceId == 0) {
+            return null;
+        }
+
+        TypedArray colorArray = null;
+        try {
+            colorArray = mView.getResources().obtainTypedArray(resourceId);
+            int[] colors = new int[colorArray.length()];
+            for (int i = 0; i < colorArray.length(); i++) {
+                colors[i] = colorArray.getColor(i, NO_COLOR);
+            }
+            // LinearGradient 至少需要两个颜色；非法的一项数组回退到旧三色入口。
+            return colors.length < 2 ? null : colors;
+        } catch (RuntimeException ignored) {
+            // 资源被移除、不是数组或数组项不是颜色时，保留旧三色渐变配置。
+            return null;
+        } finally {
+            if (colorArray != null) {
+                colorArray.recycle();
+            }
+        }
     }
 
     /**

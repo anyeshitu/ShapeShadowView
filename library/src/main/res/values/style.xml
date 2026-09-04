@@ -13,4 +13,16 @@
         <item name="shape_buttonDrawable">@drawable/shape_view_placeholder</item>
     </style>
 
+    <!--
+        ShapeSwitchButton 的默认轨道外观。控件自身会在 onDraw 中绘制滑块，
+        轨道则由 ShapeDrawableBuilder 根据 shape_* 状态属性绘制。
+    -->
+    <style name="ShapeSwitchButtonStyle" parent="Widget.AppCompat.CompoundButton.Switch">
+        <item name="shape_solidColor">#FFDDDDDD</item>
+        <item name="shape_solidCheckedColor">#FF40B5FF</item>
+        <item name="shape_radius">999dp</item>
+        <item name="shape_switchThumbColor">#FFFFFFFF</item>
+        <item name="shape_switchAnimationEnable">true</item>
+    </style>
+
 </resources>

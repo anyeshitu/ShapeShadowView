@@ -5,6 +5,7 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import androidx.appcompat.widget.AppCompatRadioButton;
 import com.allynav.shape.R;
 import com.allynav.shape.builder.ButtonDrawableBuilder;
@@ -110,6 +111,24 @@ public class ShapeRadioButton extends AppCompatRadioButton implements
     @Override
     public ShapeDrawableBuilder getShapeDrawableBuilder() {
         return mShapeDrawableBuilder;
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        // 不可点击状态也不应改变 RadioButton 的 enabled；这里只禁止用户切换 checked。
+        if (mShapeDrawableBuilder.shouldBlockTouch()) {
+            return false;
+        }
+        return super.onTouchEvent(event);
+    }
+
+    @Override
+    public boolean performClick() {
+        // 防止键盘/无障碍入口在不可点击状态下触发选中或点击回调。
+        if (mShapeDrawableBuilder.shouldBlockTouch()) {
+            return false;
+        }
+        return super.performClick();
     }
 
     @Override

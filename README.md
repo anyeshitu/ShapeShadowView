@@ -14,16 +14,18 @@ Builder 调用方式为基础，吸收了
 | 能力 | 支持内容 |
 | --- | --- |
 | 形状 | 矩形、椭圆、线、圆环、自定义宽高 |
-| 圆角 | 统一圆角、四角独立圆角、Start/End 圆角、顶部组合圆角、底部组合圆角 |
-| 填充 | 纯色、按下/选中/禁用/聚焦/选择状态色、线性/径向/扫描渐变 |
-| 边框 | 普通边框、状态边框色、渐变边框、虚线边框、虚线线条 |
+| 圆角 | 统一圆角、四角独立圆角、Start/End 圆角、顶部组合圆角、底部组合圆角；Shape 容器会裁剪子 View |
+| 填充 | 纯色、状态色、线性/径向/扫描渐变、任意角度和 XML 多色渐变 |
+| 边框 | 普通/状态边框色、任意角度多色渐变边框、虚线边框和虚线线条 |
 | 阴影 | 真实模糊阴影、扩散、偏移、对称空间、整体隐藏、按边隐藏、位图缓存缩放 |
-| 交互 | Android `RippleDrawable` 水波纹，自动匹配圆角和形状 |
+| 交互 | Android `RippleDrawable` 水波纹，自动匹配圆角和形状；独立不可点击但保持 enabled 的状态 |
 | 背景 | Color、Bitmap、Vector、XML Drawable，并支持各状态背景和形状裁剪 |
 | 文本 | 状态颜色、渐变、描边、各状态文本内容、复合图片状态 tint、固定高度自适应、自动字号、跑马灯 |
 | 输入框 | ShapeEditText 可选完成收键盘、聚焦全选和失焦隐藏光标 |
 | 复选控件 | CheckBox、RadioButton 的各状态按钮图标 |
-| 图片状态 | ShapeImageView 默认、按下、选中、禁用、聚焦和选择状态 tint 与 src |
+| 图片 | ShapeImageView 状态 tint/src，以及默认关闭的图片自身颜色模糊投影 |
+| 开关 | ShapeSwitchButton 支持 checked、拖动、动画、Shape 轨道、滑块颜色和阴影 |
+| 滚动指示器 | ShapeScrollIndicator 支持 ScrollView、HorizontalScrollView、自动隐藏和手动进度 |
 
 ## 环境要求
 
@@ -175,6 +177,8 @@ implementation 'com.github.getActivity:ShapeDrawable:5.0'
 | ShapeRadioButton | `com.allynav.shape.view.ShapeRadioButton` |
 | ShapeCheckBox | `com.allynav.shape.view.ShapeCheckBox` |
 | ShapeEditText | `com.allynav.shape.view.ShapeEditText` |
+| ShapeSwitchButton | `com.allynav.shape.view.ShapeSwitchButton` |
+| ShapeScrollIndicator | `com.allynav.shape.view.ShapeScrollIndicator` |
 
 ### ViewGroup 子类
 
@@ -189,6 +193,114 @@ implementation 'com.github.getActivity:ShapeDrawable:5.0'
 
 所有控件都支持形状、背景状态、边框、圆角、阴影和 Ripple。文本相关属性只对文本控件有效，
 按钮图标属性只对 `ShapeCheckBox` 和 `ShapeRadioButton` 有效。
+
+`ShapeSwitchButton` 是基于 AndroidX `SwitchCompat` 的独立开关，不继承 `ShapeButton`。
+它保留 checked 状态、拖动切换、无障碍、RTL 和状态保存能力；轨道使用 Shape 的背景、
+状态色、圆角、Ripple 和阴影，滑块由控件绘制。关闭轨道颜色使用 `shape_solidColor`，
+开启轨道颜色使用 `shape_solidCheckedColor`。
+
+```xml
+<com.allynav.shape.view.ShapeSwitchButton
+    android:id="@+id/switch_enabled"
+    android:layout_width="58dp"
+    android:layout_height="36dp"
+    android:checked="true"
+    app:shape_radius="18dp"
+    app:shape_solidColor="#FFDDDDDD"
+    app:shape_solidCheckedColor="#FF40B5FF"
+    app:shape_switchThumbColor="#FFFFFFFF"
+    app:shape_switchThumbCheckedColor="#FFFFFFFF"
+    app:shape_switchAnimationEnable="true" />
+```
+
+```java
+ShapeSwitchButton switchButton = findViewById(R.id.switch_enabled);
+switchButton.setOnCheckedChangeListener((button, checked) -> {
+    // checked 表示开关的最终状态。
+});
+```
+
+`ShapeScrollIndicator` 是独立绘制的滚动指示器，不会覆盖业务已经设置的
+`setOnScrollChangeListener`。绑定普通纵向或横向滚动容器：
+
+```java
+ShapeScrollIndicator indicator = findViewById(R.id.scroll_indicator);
+indicator.bindScrollView(scrollView);
+// 横向使用：indicator.bindHorizontalScrollView(horizontalScrollView);
+```
+
+如果业务已经自行注册滚动监听，可以在原监听器中调用
+`bindScrollViewFromScrollListener(view, scrollX, scrollY, oldScrollX, oldScrollY)`。
+不再使用时调用 `unbind()`，组件会恢复目标滚动容器原来的滚动条配置。
+
+开关滑块相关属性如下：
+
+| 属性 | 格式 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `shape_switchThumbColor` | color | `#FFFFFFFF` | 关闭状态滑块颜色 |
+| `shape_switchThumbCheckedColor` | color | 继承关闭状态 | checked 状态滑块颜色 |
+| `shape_switchThumbPressedColor` | color | 继承关闭状态 | 按下状态滑块颜色 |
+| `shape_switchThumbDisabledColor` | color | `#FFBDBDBD` | disabled 状态滑块颜色 |
+| `shape_switchThumbInset` | dimension | `2dp` | 滑块相对自身 Drawable 边界的内缩 |
+| `shape_switchAnimationEnable` | boolean | `true` | 是否使用 SwitchCompat 的 checked 位置动画 |
+
+滚动指示器属性如下：
+
+| 属性 | 格式 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `shape_indicatorOrientation` | `vertical`、`horizontal` | `vertical` | 绘制方向；绑定横向滚动容器时会自动切换 |
+| `shape_indicatorTrackColor` | color | 半透明深色 | 轨道颜色 |
+| `shape_indicatorColor` | color | 半透明浅色 | 滑块颜色 |
+| `shape_indicatorLength` | float，`0` 到 `1` | `0.2` | 滑块占轨道长度的比例 |
+| `shape_indicatorTrackRound` | boolean | `true` | 是否使用圆角轨道和滑块 |
+| `shape_indicatorAnimationDuration` | integer | `500` | 自动隐藏时的渐隐时长，单位 ms |
+| `shape_indicatorHideDelay` | integer | `1500` | 滚动停止后开始渐隐的延迟，单位 ms |
+| `shape_indicatorAlwaysShow` | boolean | `false` | 是否始终显示指示器 |
+
+### Shape 容器子 View 圆角裁剪
+
+`ShapeLinearLayout`、`ShapeFrameLayout`、`ShapeRelativeLayout`、`ShapeConstraintLayout`、
+`ShapeRecyclerView` 和 `ShapeRadioGroup` 会在绘制子 View 时使用与自身 Shape 背景一致的圆角
+或椭圆路径进行裁剪。这样图片、视频、自定义绘制 View 和列表 Item 不会从容器的圆角区域溢出；
+阴影开启时，裁剪区域会自动扣除阴影占用的 inset。
+
+该能力只限制子 View 的绘制范围，不改变子 View 的测量、布局、点击和滚动事件。`LINE` 与
+`RING` 是线条/环形绘制模型，不会被当作可承载子 View 的圆角容器。
+
+### 独立不可点击状态
+
+`shape_clickable` 是库自己的交互开关，与 `android:enabled` 相互独立：设置为 `false` 后，
+控件仍保持 `enabled=true`，因此仍然可以使用启用态文字色、图片 tint/src 和状态逻辑，
+但控件自身不再响应点击。容器设置该属性时，子 View 仍可继续接收自己的触摸事件。
+
+`shape_nonClickableBackground` 用于指定不可点击状态下的颜色或 Drawable。没有配置该属性时，
+继续使用普通 Shape 默认背景；`android:enabled="false"` 仍然优先使用 disabled 状态背景，
+不会被这个独立状态误判为 disabled。
+
+```xml
+<com.allynav.shape.view.ShapeButton
+    android:layout_width="160dp"
+    android:layout_height="48dp"
+    android:enabled="true"
+    android:text="暂不可点击"
+    app:shape_clickable="false"
+    app:shape_nonClickableBackground="#FFBDBDBD"
+    app:shape_solidColor="#FF1976D2"
+    app:shape_solidPressedColor="#FF0D47A1" />
+```
+
+Java 动态设置同样使用 ShapeView 风格的 Builder：
+
+```java
+shapeButton.getShapeDrawableBuilder()
+        .setShapeClickable(false)
+        .setNonClickableBackgroundColor(0xFFBDBDBD)
+        .intoBackground();
+```
+
+重新允许点击时设置为 `true` 并再次调用 `intoBackground()`。编辑框不会因为这个属性而
+失去输入聚焦和文字编辑能力；如需完全禁用输入，请使用 Android 原生的
+`android:enabled="false"`。
 
 ## 基础用法
 
@@ -266,15 +378,17 @@ xmlns:app="http://schemas.android.com/apk/res-auto"
 
 ### 填充渐变
 
-只有同时设置开始色和结束色才会启用填充渐变。
+同时设置开始色和结束色，或者提供至少两个颜色的数组，都会启用填充渐变。
 
 | 属性 | 格式/可选值 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `shape_solidGradientStartColor` | color | 无 | 渐变开始色 |
 | `shape_solidGradientCenterColor` | color | 无 | 可选的渐变中间色 |
 | `shape_solidGradientEndColor` | color | 无 | 渐变结束色 |
+| `shape_solidGradientColors` | reference | 无 | `@array` 多色渐变；配置后优先于开始/中间/结束色 |
 | `shape_solidGradientType` | `linear`、`radial`、`sweep` | `linear` | 线性、径向或扫描渐变 |
 | `shape_solidGradientOrientation` | 见下表 | `startToEnd` | 线性渐变方向 |
+| `shape_solidGradientAngle` | float | 无 | 任意线性渐变角度；配置后优先于方向枚举 |
 | `shape_solidGradientCenterX` | float/fraction | `0.5` | 径向/扫描渐变中心 X |
 | `shape_solidGradientCenterY` | float/fraction | `0.5` | 径向/扫描渐变中心 Y |
 | `shape_solidGradientRadius` | float/fraction/dimension | 当前圆角值 | 径向渐变半径 |
@@ -308,7 +422,50 @@ xmlns:app="http://schemas.android.com/apk/res-auto"
 | `shape_strokeGradientStartColor` | color | 无 | 渐变边框开始色 |
 | `shape_strokeGradientCenterColor` | color | 无 | 可选的渐变边框中间色 |
 | `shape_strokeGradientEndColor` | color | 无 | 渐变边框结束色 |
+| `shape_strokeGradientColors` | reference | 无 | `@array` 多色边框；配置后优先于三色属性 |
 | `shape_strokeGradientOrientation` | 渐变方向枚举 | `startToEnd` | 渐变边框方向 |
+| `shape_strokeGradientAngle` | float | 无 | 任意边框渐变角度；配置后优先于方向枚举 |
+
+任意角度、多色填充和边框示例：
+
+```xml
+<!-- res/values/colors.xml：数组至少包含两个颜色，未指定位置时按等距分布。 -->
+<array name="shape_card_gradient">
+    <item>#FF3B82F6</item>
+    <item>#FF22C55E</item>
+    <item>#FFF59E0B</item>
+    <item>#FFEF4444</item>
+</array>
+```
+
+```xml
+<com.allynav.shape.view.ShapeTextView
+    android:layout_width="200dp"
+    android:layout_height="52dp"
+    android:gravity="center"
+    android:text="任意角度多色渐变"
+    app:shape_radius="8dp"
+    app:shape_solidGradientColors="@array/shape_card_gradient"
+    app:shape_solidGradientAngle="35"
+    app:shape_strokeGradientColors="@array/shape_card_gradient"
+    app:shape_strokeGradientAngle="125"
+    app:shape_strokeSize="2dp" />
+```
+
+角度采用 Android 渐变习惯：`0` 度从左向右，`90` 度从下向上，可传任意正负
+浮点数。角度只作用于 `linear`，径向和扫描渐变继续使用各自的中心、半径参数。
+Java 设置数组时 Builder 会复制数组，最后仍需调用 `intoBackground()`：
+
+```java
+shapeTextView.getShapeDrawableBuilder()
+        .setSolidGradientColors(new int[] {
+                0xFF3B82F6, 0xFF22C55E, 0xFFF59E0B, 0xFFEF4444
+        })
+        .setSolidGradientAngle(35f)
+        .setStrokeGradientColors(new int[] {0xFFFFFFFF, 0xFF22C55E})
+        .setStrokeGradientAngle(125f)
+        .intoBackground();
+```
 
 虚线边框示例：
 
@@ -792,6 +949,7 @@ shapeCheckBox.getButtonDrawableBuilder()
 | 圆环 | `setRingInnerRadiusSize`、`setRingInnerRadiusRatio`、`setRingThicknessSize`、`setRingThicknessRatio` |
 | 阴影 | `setShadowHidden`、`setShadowSize`、`setShadowColor`、`setShadowOffsetX`、`setShadowOffsetY`、`setShadowSpread`、`setShadowSymmetry`、`setShadowHiddenLeft`、`setShadowHiddenTop`、`setShadowHiddenRight`、`setShadowHiddenBottom`、`setShadowBitmapScale` |
 | Ripple | `setRippleEnable`、`setRippleColor` |
+| 独立点击状态 | `setShapeClickable`、`setNonClickableBackgroundDrawable`、`setNonClickableBackgroundColor` |
 | Drawable 状态 | `setBackgroundDrawable`、`setPressedBackgroundDrawable`、`setCheckedBackgroundDrawable`、`setDisabledBackgroundDrawable`、`setFocusedBackgroundDrawable`、`setSelectedBackgroundDrawable` |
 | 应用/清除 | `intoBackground`、`clearBackground` |
 
@@ -946,6 +1104,53 @@ shapeImageView.getImageSourceBuilder()
 
 `ImageTintBuilder` 修改后必须调用 `intoTint()`；`ImageSourceBuilder` 修改后必须调用
 `intoSource()`。
+
+### ShapeImageView 图片彩色模糊投影
+
+`ShapeImageView` 还支持参考 `BlurShadowImageView` 思路实现的图片内容投影。它不是
+`shape_shadowColor` 的替代品：普通 Shape 阴影使用单色轮廓，图片投影会读取当前
+`src` 和 tint 后的 Drawable 像素，生成带有图片主色的柔化背景。该能力默认关闭，
+开启后与 Shape 圆角、状态 src、状态 tint 和单色 Shape 阴影相互独立。
+
+| 属性 | 格式 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `shape_imageBlurShadowEnable` | boolean | `false` | 是否开启图片自身颜色模糊投影 |
+| `shape_imageBlurShadowRadius` | dimension | `18dp` | 投影扩散半径 |
+| `shape_imageBlurShadowOffsetX` | dimension | `0dp` | 水平偏移，正值向右 |
+| `shape_imageBlurShadowOffsetY` | dimension | `0dp` | 垂直偏移，正值向下 |
+| `shape_imageBlurShadowAlpha` | float | `0.45` | 投影透明度，范围 `0..1` |
+| `shape_imageBlurShadowBitmapScale` | float | `0.18` | 低分辨率缓存比例，范围 `0.05..1` |
+| `shape_imageBlurShadowImageScale` | float | `0.86` | 开启投影时清晰图片的居中缩放，范围 `0.1..1` |
+
+```xml
+<com.allynav.shape.view.ShapeImageView
+    android:layout_width="180dp"
+    android:layout_height="180dp"
+    android:scaleType="centerCrop"
+    android:src="@drawable/cover"
+    app:shape_radius="16dp"
+    app:shape_imageBlurShadowEnable="true"
+    app:shape_imageBlurShadowRadius="20dp"
+    app:shape_imageBlurShadowOffsetY="8dp"
+    app:shape_imageBlurShadowAlpha="0.55"
+    app:shape_imageBlurShadowImageScale="0.84" />
+```
+
+Java 动态配置使用独立 Builder；修改后会立即失效缓存并重绘：
+
+```java
+shapeImageView.getImageBlurShadowBuilder()
+        .setEnabled(true)
+        .setRadius(dpToPx(20))
+        .setOffsetY(dpToPx(8))
+        .setAlpha(0.55f)
+        .setImageScale(0.84f);
+```
+
+投影缓存只在图片、状态 tint、尺寸或矩阵变化时重建，控件离开窗口会主动释放 Bitmap。
+投影绘制在 ImageView 内容下方，但仍受自身 View 边界裁剪；需要让投影更明显时，应适当
+降低 `shape_imageBlurShadowImageScale`，并给控件留出足够尺寸。图片投影不适合在大量
+RecyclerView 条目中同时开启。
 
 ### TextStateDelegate
 

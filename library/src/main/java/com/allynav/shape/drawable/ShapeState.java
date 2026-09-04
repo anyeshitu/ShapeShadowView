@@ -22,6 +22,11 @@ public class ShapeState extends Drawable.ConstantState {
     @ShapeGradientTypeLimit
     public int solidGradientType = ShapeGradientType.LINEAR_GRADIENT;
     public ShapeGradientOrientation solidGradientOrientation = ShapeGradientOrientation.TOP_TO_BOTTOM;
+    /**
+     * 任意角度线性渐变，单位为度；NaN 表示继续使用 solidGradientOrientation。
+     * 采用哨兵值而不是默认 0 度，是为了保证旧版 XML 的方向枚举行为不发生变化。
+     */
+    public float solidGradientAngle = Float.NaN;
     /** 填充/描边渐变颜色数组及对应位置。 */
     public int[] solidColors;
     public int[] strokeColors;
@@ -33,6 +38,8 @@ public class ShapeState extends Drawable.ConstantState {
     public int solidColor;
     public int strokeSize = -1;   // if >= 0 use stroking.
     public ShapeGradientOrientation strokeGradientOrientation = ShapeGradientOrientation.TOP_TO_BOTTOM;
+    /** 任意角度描边渐变；NaN 时继续使用 strokeGradientOrientation。 */
+    public float strokeGradientAngle = Float.NaN;
     public int strokeColor;
     public float strokeDashSize;
     public float strokeDashGap;
@@ -68,6 +75,7 @@ public class ShapeState extends Drawable.ConstantState {
         shapeType = state.shapeType;
         solidGradientType = state.solidGradientType;
         solidGradientOrientation = state.solidGradientOrientation;
+        solidGradientAngle = state.solidGradientAngle;
         if (state.solidColors != null) {
             solidColors = state.solidColors.clone();
         }
@@ -82,6 +90,7 @@ public class ShapeState extends Drawable.ConstantState {
         solidColor = state.solidColor;
         strokeSize = state.strokeSize;
         strokeGradientOrientation = state.strokeGradientOrientation;
+        strokeGradientAngle = state.strokeGradientAngle;
         strokeColor = state.strokeColor;
         strokeDashSize = state.strokeDashSize;
         strokeDashGap = state.strokeDashGap;

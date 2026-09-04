@@ -5,6 +5,7 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import androidx.appcompat.widget.AppCompatCheckBox;
 import com.allynav.shape.R;
 import com.allynav.shape.builder.ButtonDrawableBuilder;
@@ -110,6 +111,24 @@ public class ShapeCheckBox extends AppCompatCheckBox implements
     @Override
     public ShapeDrawableBuilder getShapeDrawableBuilder() {
         return mShapeDrawableBuilder;
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        // 不可点击状态只禁止用户切换 checked，不会把控件降级为 disabled。
+        if (mShapeDrawableBuilder.shouldBlockTouch()) {
+            return false;
+        }
+        return super.onTouchEvent(event);
+    }
+
+    @Override
+    public boolean performClick() {
+        // 复选框的主动点击入口同样不能绕过 shape_clickable=false。
+        if (mShapeDrawableBuilder.shouldBlockTouch()) {
+            return false;
+        }
+        return super.performClick();
     }
 
     @Override

@@ -177,4 +177,13 @@ public class ShapeEditText extends AppCompatEditText implements
     public void closeKeyboard() {
         mCloseKeyboardEditTextDelegate.closeKeyboard();
     }
+
+    @Override
+    public boolean performClick() {
+        // EditText 仍允许触摸聚焦和编辑；这里只阻断控件自身的点击回调入口。
+        if (mShapeDrawableBuilder.shouldBlockTouch()) {
+            return false;
+        }
+        return super.performClick();
+    }
 }

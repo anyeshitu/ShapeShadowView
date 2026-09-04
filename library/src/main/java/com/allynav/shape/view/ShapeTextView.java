@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.TypedValue;
+import android.view.MotionEvent;
 import androidx.appcompat.widget.AppCompatTextView;
 import com.allynav.shape.R;
 import com.allynav.shape.builder.CompoundDrawableTintBuilder;
@@ -473,6 +474,25 @@ public class ShapeTextView extends AppCompatTextView implements
     @Override
     public ShapeDrawableBuilder getShapeDrawableBuilder() {
         return mShapeDrawableBuilder;
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        // 跑马灯不依赖点击事件；shape_clickable=false 时仍允许文本正常绘制和滚动，
+        // 但不让 TextView 自身响应点击监听或产生按下状态。
+        if (mShapeDrawableBuilder.shouldBlockTouch()) {
+            return false;
+        }
+        return super.onTouchEvent(event);
+    }
+
+    @Override
+    public boolean performClick() {
+        // 保护键盘导航、无障碍和业务主动调用入口，不让它们绕过 shape_clickable=false。
+        if (mShapeDrawableBuilder.shouldBlockTouch()) {
+            return false;
+        }
+        return super.performClick();
     }
 
     @Override

@@ -2,11 +2,13 @@ package com.allynav.shape.layout;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Canvas;
 import android.util.AttributeSet;
 import androidx.recyclerview.widget.RecyclerView;
 import com.allynav.shape.R;
 import com.allynav.shape.builder.ShapeDrawableBuilder;
 import com.allynav.shape.config.IGetShapeDrawableBuilder;
+import com.allynav.shape.other.ShapeViewGroupClipDelegate;
 import com.allynav.shape.styleable.ShapeRecyclerViewStyleable;
 
 /**
@@ -23,6 +25,7 @@ public class ShapeRecyclerView extends RecyclerView implements IGetShapeDrawable
     private static final ShapeRecyclerViewStyleable STYLEABLE = new ShapeRecyclerViewStyleable();
 
     private final ShapeDrawableBuilder mShapeDrawableBuilder;
+    private final ShapeViewGroupClipDelegate mShapeViewGroupClipDelegate;
 
     public ShapeRecyclerView(Context context) {
         this(context, null);
@@ -41,10 +44,32 @@ public class ShapeRecyclerView extends RecyclerView implements IGetShapeDrawable
         typedArray.recycle();
 
         mShapeDrawableBuilder.intoBackground();
+        mShapeViewGroupClipDelegate = new ShapeViewGroupClipDelegate(
+                this, mShapeDrawableBuilder);
     }
 
     @Override
     public ShapeDrawableBuilder getShapeDrawableBuilder() {
         return mShapeDrawableBuilder;
+    }
+
+    @Override
+    protected void dispatchDraw(Canvas canvas) {
+        int saveCount = mShapeViewGroupClipDelegate.save(canvas);
+        try {
+            super.dispatchDraw(canvas);
+        } finally {
+            mShapeViewGroupClipDelegate.restore(canvas, saveCount);
+        }
+    }
+
+    @Override
+    public boolean performClick() {
+        // RecyclerView 的滚动依赖 onTouchEvent，因此这里只保护容器自身的点击入口；
+        // 列表滚动以及 Adapter Item 的点击仍按 RecyclerView 原生事件链处理。
+        if (mShapeDrawableBuilder.shouldBlockTouch()) {
+            return false;
+        }
+        return super.performClick();
     }
 }

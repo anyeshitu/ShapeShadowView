@@ -2,12 +2,15 @@ package com.allynav.shape.layout;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Canvas;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.widget.FrameLayout;
 
 import com.allynav.shape.R;
 import com.allynav.shape.builder.ShapeDrawableBuilder;
 import com.allynav.shape.config.IGetShapeDrawableBuilder;
+import com.allynav.shape.other.ShapeViewGroupClipDelegate;
 import com.allynav.shape.styleable.ShapeFrameLayoutStyleable;
 
 /**
@@ -24,6 +27,7 @@ public class ShapeFrameLayout extends FrameLayout implements IGetShapeDrawableBu
     private static final ShapeFrameLayoutStyleable STYLEABLE = new ShapeFrameLayoutStyleable();
 
     private final ShapeDrawableBuilder mShapeDrawableBuilder;
+    private final ShapeViewGroupClipDelegate mShapeViewGroupClipDelegate;
 
     public ShapeFrameLayout(Context context) {
         this(context, null);
@@ -42,10 +46,40 @@ public class ShapeFrameLayout extends FrameLayout implements IGetShapeDrawableBu
         typedArray.recycle();
 
         mShapeDrawableBuilder.intoBackground();
+        mShapeViewGroupClipDelegate = new ShapeViewGroupClipDelegate(
+                this, mShapeDrawableBuilder);
     }
 
     @Override
     public ShapeDrawableBuilder getShapeDrawableBuilder() {
         return mShapeDrawableBuilder;
+    }
+
+    @Override
+    protected void dispatchDraw(Canvas canvas) {
+        int saveCount = mShapeViewGroupClipDelegate.save(canvas);
+        try {
+            super.dispatchDraw(canvas);
+        } finally {
+            mShapeViewGroupClipDelegate.restore(canvas, saveCount);
+        }
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        // 返回 false 让父布局或子 View 继续处理，避免把“不可点击”变成“不可用”。
+        if (mShapeDrawableBuilder.shouldBlockTouch()) {
+            return false;
+        }
+        return super.onTouchEvent(event);
+    }
+
+    @Override
+    public boolean performClick() {
+        // 保护容器的主动点击入口，子 View 的 performClick 不受影响。
+        if (mShapeDrawableBuilder.shouldBlockTouch()) {
+            return false;
+        }
+        return super.performClick();
     }
 }

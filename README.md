@@ -1,45 +1,58 @@
 # ShapeShadowView
 
-`ShapeShadowView` 是一个 Android UI 控件库。它以
-[ShapeView](https://github.com/getActivity/ShapeView) 的控件体系、`shape_*` XML 属性和
-Builder 调用方式为基础，吸收了
-[ShadowLayout](https://github.com/lihangleo2/ShadowLayout) 的阴影空间计算与位图缓存思路，
-让所有 Shape 控件都能直接使用真实、可配置的模糊阴影。
+`ShapeShadowView` 是一个面向 Android View 的 Shape UI library。
 
-使用方只需要这个库，不需要同时依赖原版 ShapeView、ShapeDrawable 或 ShadowLayout，
-也不需要使用 `hl_*` 属性。
+它以 [ShapeView](https://github.com/getActivity/ShapeView) 的控件体系、`shape_*` XML
+属性和 Builder API 为基础，并吸收 [ShadowLayout](https://github.com/lihangleo2/ShadowLayout)
+的阴影空间计算与 bitmap cache 思路。库内已经包含 ShapeDrawable 实现，通常只需要引入
+`ShapeShadowView`，不需要再同时依赖原版 ShapeView、ShapeDrawable 或 ShadowLayout。
 
-## 功能概览
+## Features
 
-| 能力 | 支持内容 |
-| --- | --- |
-| 形状 | 矩形、椭圆、线、圆环、自定义宽高 |
-| 圆角 | 统一圆角、四角独立圆角、Start/End 圆角、顶部组合圆角、底部组合圆角；Shape 容器会裁剪子 View |
-| 填充 | 纯色、状态色、线性/径向/扫描渐变、任意角度和 XML 多色渐变 |
-| 边框 | 普通/状态边框色、任意角度多色渐变边框、虚线边框和虚线线条 |
-| 阴影 | 真实模糊阴影、扩散、偏移、对称空间、整体隐藏、按边隐藏、位图缓存缩放 |
-| 交互 | Android `RippleDrawable` 水波纹，自动匹配圆角和形状；独立不可点击但保持 enabled 的状态 |
-| 背景 | Color、Bitmap、Vector、XML Drawable，并支持各状态背景和形状裁剪 |
-| 文本 | 状态颜色、渐变、描边、各状态文本内容、复合图片状态 tint、固定高度自适应、自动字号、跑马灯 |
-| 输入框 | ShapeEditText 可选完成收键盘、聚焦全选和失焦隐藏光标 |
-| 复选控件 | CheckBox、RadioButton 的各状态按钮图标 |
-| 图片 | ShapeImageView 状态 tint/src，以及默认关闭的图片自身颜色模糊投影 |
-| 开关 | ShapeSwitchButton 支持 checked、拖动、动画、Shape 轨道、滑块颜色和阴影 |
-| 滚动指示器 | ShapeScrollIndicator 支持 ScrollView、HorizontalScrollView、自动隐藏和手动进度 |
+- Shape：`rectangle`、`oval`、`line`、`ring`
+- Corner radius：统一圆角、四角独立圆角、Start/End 圆角、顶部/底部组合圆角
+- Background：solid color、state color、custom `Drawable`、`VectorDrawable`、Ripple
+- Border：普通边框、state border、dashed border、dashed line
+- Gradient：linear、radial、sweep、任意角度、XML 多色数组
+- Shadow：模糊半径、offset、spread、对称空间、按边隐藏、bitmap cache scale
+- Text：state color、gradient、stroke、state text、Adaptive text、AutoFit、Marquee
+- Image：state `tint`、state `src`、图片自身颜色的 blur shadow
+- Container：Shape 圆角裁剪子 View，不改变子 View 的测量、布局和事件
+- Controls：`ShapeSwitchButton`、`ShapeScrollIndicator`
+- Java API：沿用 ShapeView 的 `Builder` 调用方式，修改后显式调用 `into...()` 生效
 
-## 环境要求
+## Table of Contents
+
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Local Module](#local-module)
+- [Components](#components)
+- [Quick Start](#quick-start)
+- [Shape and Background](#shape-and-background)
+- [Gradient](#gradient)
+- [Shadow](#shadow)
+- [Ripple and Click State](#ripple-and-click-state)
+- [Text Components](#text-components)
+- [Image Components](#image-components)
+- [ShapeSwitchButton](#shapeswitchbutton)
+- [ShapeScrollIndicator](#shapescrollindicator)
+- [ViewGroup Child Clipping](#viewgroup-child-clipping)
+- [Java Builder API](#java-builder-api)
+- [State Priority](#state-priority)
+- [Compatibility Notes](#compatibility-notes)
+- [License](#license)
+
+## Requirements
 
 - Android `minSdk 21`
-- 建议 `compileSdk 35` 或更高
-- Java 8
+- `compileSdk 35` or higher is recommended
 - AndroidX
+- Java 8
 
-应用模块可使用以下配置：
+应用模块可以使用以下 Java 8 配置：
 
 ```groovy
 android {
-    compileSdk 35
-
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -47,9 +60,13 @@ android {
 }
 ```
 
-## JitPack 依赖
+## Installation
 
-在根工程的 `settings.gradle.kts` 中加入 JitPack 仓库：
+### JitPack
+
+在根工程的 `settings.gradle` 或 `settings.gradle.kts` 中加入 JitPack repository。
+
+Kotlin DSL：
 
 ```kotlin
 dependencyResolutionManagement {
@@ -73,7 +90,9 @@ dependencyResolutionManagement {
 }
 ```
 
-然后在应用模块中添加依赖：
+在应用 module 的 `build.gradle` 或 `build.gradle.kts` 中添加当前版本：
+
+Kotlin DSL：
 
 ```kotlin
 dependencies {
@@ -89,49 +108,56 @@ dependencies {
 }
 ```
 
-### 依赖版本兼容
+### Dependency compatibility
 
-库中的 Shape 控件继承 AndroidX AppCompat 控件，发布包会声明兼容基线
-`androidx.appcompat:appcompat:1.6.1`。Gradle 会优先采用应用工程或其他依赖显式声明的版本；
-如果宿主工程必须固定 AppCompat 版本，也可以在依赖声明中排除库的传递依赖：
+库中的 Shape 控件继承 AndroidX AppCompat 控件，发布包声明了以下公开依赖：
+
+- `androidx.appcompat:appcompat:1.6.1`
+- `androidx.constraintlayout:constraintlayout:2.2.1`
+- `androidx.recyclerview:recyclerview:1.4.0`
+
+Gradle 通常会按宿主工程的 dependency resolution 规则选择最终版本。如果项目需要固定
+AppCompat 版本，可以排除库传递的 AppCompat，再由宿主工程统一提供：
 
 ```groovy
 implementation('com.github.anyeshitu:ShapeShadowView:1.1.14') {
-    // 由宿主工程统一提供 AppCompat，避免三方库传递版本改变现有主题行为。
+    // 由宿主工程统一管理 AppCompat 版本，避免三方依赖改变主题行为。
     exclude group: 'androidx.appcompat', module: 'appcompat'
 }
 ```
 
-ShapeShadowView 不会替宿主工程自动切换主题。布局中存在普通 `Button`、
-`MaterialButton` 或使用 AppCompat/Material 组件的弹窗时，承载它们的 Activity、Fragment
-和 Dialog Context 应使用 `Theme.MaterialComponents` 或其子主题；仅使用平台
-`Theme.Material` 的启动窗口不应直接承载业务布局。
+该配置只处理 dependency version conflict，不会替宿主工程自动修复 theme。使用
+`MaterialButton`、Material inflater 或 AppCompat dialog 时，Activity、Fragment 和
+Dialog Context 应使用匹配的 AndroidX/Material theme。
 
-## 本地模块接入
+### JitPack troubleshooting
 
-把本项目的 `library` 目录复制到应用工程根目录，并重命名为 `shape-shadow-view`：
+如果出现 `401 Unauthorized` 或 `Failed to resolve`：
+
+1. 确认 GitHub repository 为 public。
+2. 确认 JitPack repository 已加入 `settings.gradle(.kts)`，而不是只加入 module 文件。
+3. 确认依赖版本对应已推送的 Git tag，例如 `1.1.14`。
+4. 在 JitPack 页面检查该 tag 的 build log；JitPack 需要能够访问公开仓库和 tag。
+
+## Local Module
+
+把仓库中的 `library` 目录复制到应用工程中，例如：
 
 ```text
-your-android-project/
+your-project/
 ├── app/
 ├── shape-shadow-view/
 │   └── build.gradle.kts
 └── settings.gradle.kts
 ```
 
-Kotlin DSL，在根工程的 `settings.gradle.kts` 中加入：
+在根工程 `settings.gradle.kts` 中加入：
 
 ```kotlin
 include(":shape-shadow-view")
 ```
 
-Groovy DSL，在根工程的 `settings.gradle` 中加入：
-
-```groovy
-include ':shape-shadow-view'
-```
-
-然后在应用模块的 `build.gradle.kts` 中加入：
+在应用 module 中加入：
 
 ```kotlin
 dependencies {
@@ -139,36 +165,39 @@ dependencies {
 }
 ```
 
-Groovy DSL：
-
-```groovy
-dependencies {
-    implementation project(':shape-shadow-view')
-}
-```
-
-如果不移动当前目录，也可以把模块映射到嵌套的 `library` 目录：
+如果保留 `library` 目录的嵌套结构，也可以映射 module path：
 
 ```kotlin
 include(":shape-shadow-view")
 project(":shape-shadow-view").projectDir = file("shape-shadow-view/library")
 ```
 
-本库已经包含兼容的 ShapeDrawable 实现。请移除原来的依赖，避免同名资源和类冲突：
+Groovy DSL：
 
 ```groovy
-// 删除这两项
+include ':shape-shadow-view'
+
+dependencies {
+    implementation project(':shape-shadow-view')
+}
+```
+
+本地接入后，请移除原版的 ShapeView 和 ShapeDrawable 依赖，避免同名 class、resource
+和 attribute 冲突：
+
+```groovy
+// 删除以下依赖
 implementation 'com.github.getActivity:ShapeView:11.0'
 implementation 'com.github.getActivity:ShapeDrawable:5.0'
 ```
 
-同时不需要添加 ShadowLayout 依赖。
+不需要额外添加 ShadowLayout。
 
-## 支持的控件
+## Components
 
-### View 子类
+### View
 
-| 控件 | XML 类名 |
+| Component | Class |
 | --- | --- |
 | ShapeView | `com.allynav.shape.view.ShapeView` |
 | ShapeTextView | `com.allynav.shape.view.ShapeTextView` |
@@ -180,9 +209,9 @@ implementation 'com.github.getActivity:ShapeDrawable:5.0'
 | ShapeSwitchButton | `com.allynav.shape.view.ShapeSwitchButton` |
 | ShapeScrollIndicator | `com.allynav.shape.view.ShapeScrollIndicator` |
 
-### ViewGroup 子类
+### ViewGroup
 
-| 控件 | XML 类名 |
+| Component | Class |
 | --- | --- |
 | ShapeLinearLayout | `com.allynav.shape.layout.ShapeLinearLayout` |
 | ShapeFrameLayout | `com.allynav.shape.layout.ShapeFrameLayout` |
@@ -191,245 +220,233 @@ implementation 'com.github.getActivity:ShapeDrawable:5.0'
 | ShapeRecyclerView | `com.allynav.shape.layout.ShapeRecyclerView` |
 | ShapeRadioGroup | `com.allynav.shape.layout.ShapeRadioGroup` |
 
-所有控件都支持形状、背景状态、边框、圆角、阴影和 Ripple。文本相关属性只对文本控件有效，
-按钮图标属性只对 `ShapeCheckBox` 和 `ShapeRadioButton` 有效。
+Shape 控件统一提供 `getShapeDrawableBuilder()`。文本控件额外提供 text Builder 和
+`TextStateDelegate`；`ShapeImageView` 额外提供 image tint/source/blur shadow Builder。
+`ShapeSwitchButton` 和 `ShapeScrollIndicator` 是独立组件，详见后文。
 
-`ShapeSwitchButton` 是基于 AndroidX `SwitchCompat` 的独立开关，不继承 `ShapeButton`。
-它保留 checked 状态、拖动切换、无障碍、RTL 和状态保存能力；轨道使用 Shape 的背景、
-状态色、圆角、Ripple 和阴影，滑块由控件绘制。关闭轨道颜色使用 `shape_solidColor`，
-开启轨道颜色使用 `shape_solidCheckedColor`。
+## Quick Start
 
-```xml
-<com.allynav.shape.view.ShapeSwitchButton
-    android:id="@+id/switch_enabled"
-    android:layout_width="58dp"
-    android:layout_height="36dp"
-    android:checked="true"
-    app:shape_radius="18dp"
-    app:shape_solidColor="#FFDDDDDD"
-    app:shape_solidCheckedColor="#FF40B5FF"
-    app:shape_switchThumbColor="#FFFFFFFF"
-    app:shape_switchThumbCheckedColor="#FFFFFFFF"
-    app:shape_switchAnimationEnable="true" />
-```
-
-```java
-ShapeSwitchButton switchButton = findViewById(R.id.switch_enabled);
-switchButton.setOnCheckedChangeListener((button, checked) -> {
-    // checked 表示开关的最终状态。
-});
-```
-
-`ShapeScrollIndicator` 是独立绘制的滚动指示器，不会覆盖业务已经设置的
-`setOnScrollChangeListener`。绑定普通纵向或横向滚动容器：
-
-```java
-ShapeScrollIndicator indicator = findViewById(R.id.scroll_indicator);
-indicator.bindScrollView(scrollView);
-// 横向使用：indicator.bindHorizontalScrollView(horizontalScrollView);
-```
-
-如果业务已经自行注册滚动监听，可以在原监听器中调用
-`bindScrollViewFromScrollListener(view, scrollX, scrollY, oldScrollX, oldScrollY)`。
-不再使用时调用 `unbind()`，组件会恢复目标滚动容器原来的滚动条配置。
-
-开关滑块相关属性如下：
-
-| 属性 | 格式 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `shape_switchThumbColor` | color | `#FFFFFFFF` | 关闭状态滑块颜色 |
-| `shape_switchThumbCheckedColor` | color | 继承关闭状态 | checked 状态滑块颜色 |
-| `shape_switchThumbPressedColor` | color | 继承关闭状态 | 按下状态滑块颜色 |
-| `shape_switchThumbDisabledColor` | color | `#FFBDBDBD` | disabled 状态滑块颜色 |
-| `shape_switchThumbInset` | dimension | `2dp` | 滑块相对自身 Drawable 边界的内缩 |
-| `shape_switchAnimationEnable` | boolean | `true` | 是否使用 SwitchCompat 的 checked 位置动画 |
-
-滚动指示器属性如下：
-
-| 属性 | 格式 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `shape_indicatorOrientation` | `vertical`、`horizontal` | `vertical` | 绘制方向；绑定横向滚动容器时会自动切换 |
-| `shape_indicatorTrackColor` | color | 半透明深色 | 轨道颜色 |
-| `shape_indicatorColor` | color | 半透明浅色 | 滑块颜色 |
-| `shape_indicatorLength` | float，`0` 到 `1` | `0.2` | 滑块占轨道长度的比例 |
-| `shape_indicatorTrackRound` | boolean | `true` | 是否使用圆角轨道和滑块 |
-| `shape_indicatorAnimationDuration` | integer | `500` | 自动隐藏时的渐隐时长，单位 ms |
-| `shape_indicatorHideDelay` | integer | `1500` | 滚动停止后开始渐隐的延迟，单位 ms |
-| `shape_indicatorAlwaysShow` | boolean | `false` | 是否始终显示指示器 |
-
-### Shape 容器子 View 圆角裁剪
-
-`ShapeLinearLayout`、`ShapeFrameLayout`、`ShapeRelativeLayout`、`ShapeConstraintLayout`、
-`ShapeRecyclerView` 和 `ShapeRadioGroup` 会在绘制子 View 时使用与自身 Shape 背景一致的圆角
-或椭圆路径进行裁剪。这样图片、视频、自定义绘制 View 和列表 Item 不会从容器的圆角区域溢出；
-阴影开启时，裁剪区域会自动扣除阴影占用的 inset。
-
-该能力只限制子 View 的绘制范围，不改变子 View 的测量、布局、点击和滚动事件。`LINE` 与
-`RING` 是线条/环形绘制模型，不会被当作可承载子 View 的圆角容器。
-
-### 独立不可点击状态
-
-`shape_clickable` 是库自己的交互开关，与 `android:enabled` 相互独立：设置为 `false` 后，
-控件仍保持 `enabled=true`，因此仍然可以使用启用态文字色、图片 tint/src 和状态逻辑，
-但控件自身不再响应点击。容器设置该属性时，子 View 仍可继续接收自己的触摸事件。
-
-`shape_nonClickableBackground` 用于指定不可点击状态下的颜色或 Drawable。没有配置该属性时，
-继续使用普通 Shape 默认背景；`android:enabled="false"` 仍然优先使用 disabled 状态背景，
-不会被这个独立状态误判为 disabled。
-
-```xml
-<com.allynav.shape.view.ShapeButton
-    android:layout_width="160dp"
-    android:layout_height="48dp"
-    android:enabled="true"
-    android:text="暂不可点击"
-    app:shape_clickable="false"
-    app:shape_nonClickableBackground="#FFBDBDBD"
-    app:shape_solidColor="#FF1976D2"
-    app:shape_solidPressedColor="#FF0D47A1" />
-```
-
-Java 动态设置同样使用 ShapeView 风格的 Builder：
-
-```java
-shapeButton.getShapeDrawableBuilder()
-        .setShapeClickable(false)
-        .setNonClickableBackgroundColor(0xFFBDBDBD)
-        .intoBackground();
-```
-
-重新允许点击时设置为 `true` 并再次调用 `intoBackground()`。编辑框不会因为这个属性而
-失去输入聚焦和文字编辑能力；如需完全禁用输入，请使用 Android 原生的
-`android:enabled="false"`。
-
-## 基础用法
-
-先在布局根节点声明 `app` 命名空间：
+先在布局根节点声明 `app` namespace：
 
 ```xml
 xmlns:app="http://schemas.android.com/apk/res-auto"
 ```
 
-一个同时使用组合圆角、Ripple 和真实阴影的按钮：
+下面的按钮同时使用圆角、状态色、Ripple、dashed border 和真实 shadow：
 
 ```xml
 <com.allynav.shape.view.ShapeButton
     android:id="@+id/btn_main_test"
     android:layout_width="180dp"
-    android:layout_height="72dp"
+    android:layout_height="56dp"
     android:gravity="center"
     android:text="确认"
     android:textSize="16sp"
-    app:shape_solidColor="#FFFFFF"
-    app:shape_solidPressedColor="#F2F5F8"
+    app:shape_solidColor="#FFFFFFFF"
+    app:shape_solidPressedColor="#FFF2F5F8"
     app:shape_radiusInTop="18dp"
     app:shape_radiusInBottom="10dp"
+    app:shape_strokeColor="#FF5A8DDF"
+    app:shape_strokeSize="1dp"
+    app:shape_strokeDashSize="6dp"
+    app:shape_strokeDashGap="4dp"
     app:shape_rippleEnable="true"
     app:shape_rippleColor="#1F000000"
     app:shape_shadowColor="#52000000"
     app:shape_shadowSize="14dp"
     app:shape_shadowOffsetY="5dp"
     app:shape_shadowSpread="1dp"
-    app:shape_textColor="#202124"
-    app:shape_textPressedColor="#000000" />
+    app:shape_textColor="#FF202124"
+    app:shape_textPressedColor="#FF000000" />
 ```
 
-## 布局属性大全
+对应的 Java 动态修改方式：
 
-除特别注明外，下列属性适用于全部 Shape 控件。
+```java
+ShapeButton shapeButton = findViewById(R.id.btn_main_test);
+shapeButton.setOnClickListener(new View.OnClickListener() {
+    @Override
+    public void onClick(View v) {
+        shapeButton.getShapeDrawableBuilder()
+                .setSolidColor(0xFF000000)
+                .setStrokeColor(0xFF5A8DDF)
+                // ShapeView 风格 Builder 必须调用 intoBackground() 才会应用。
+                .intoBackground();
 
-### 形状和尺寸
+        shapeButton.getTextColorBuilder()
+                .setTextColor(0xFFFFFFFF)
+                // TextColorBuilder 必须调用 intoTextColor() 才会应用。
+                .intoTextColor();
 
-| 属性 | 格式/可选值 | 默认值 | 说明 |
+        shapeButton.setText("颜色已经改变啦");
+    }
+});
+```
+
+## Shape and Background
+
+### Common shape attributes
+
+除特别说明外，以下属性适用于 Shape View 和 Shape ViewGroup。`dimension` 在 XML 中
+建议使用 `dp`；Java Builder 的尺寸参数使用 `px`。
+
+| Attribute | Format / values | Default | Description |
 | --- | --- | --- | --- |
-| `shape_type` | `rectangle`、`oval`、`line`、`ring` | `rectangle` | Shape 类型 |
-| `shape_width` | dimension | 未指定 | Drawable 的内部宽度，不等同于 `layout_width` |
-| `shape_height` | dimension | 未指定 | Drawable 的内部高度，不等同于 `layout_height` |
+| `shape_type` | `rectangle`, `oval`, `line`, `ring` | `rectangle` | Shape 类型 |
+| `shape_width` | dimension | unset | Drawable 内部宽度，不等同于 `layout_width` |
+| `shape_height` | dimension | unset | Drawable 内部高度，不等同于 `layout_height` |
+| `shape_solidColor` | color | transparent | 默认 fill color |
+| `shape_solidPressedColor` | color | fallback | pressed 状态 fill color |
+| `shape_solidCheckedColor` | color | fallback | checked 状态 fill color；适用于具有 checked state 的控件 |
+| `shape_solidDisabledColor` | color | fallback | disabled 状态 fill color |
+| `shape_solidFocusedColor` | color | fallback | focused 状态 fill color |
+| `shape_solidSelectedColor` | color | fallback | selected 状态 fill color |
+| `shape_strokeColor` | color | transparent | 默认 border color |
+| `shape_strokePressedColor` | color | fallback | pressed 状态 border color |
+| `shape_strokeCheckedColor` | color | fallback | checked 状态 border color；适用于具有 checked state 的控件 |
+| `shape_strokeDisabledColor` | color | fallback | disabled 状态 border color |
+| `shape_strokeFocusedColor` | color | fallback | focused 状态 border color |
+| `shape_strokeSelectedColor` | color | fallback | selected 状态 border color |
+| `shape_strokeSize` | dimension | `0dp` | border width |
+| `shape_strokeDashSize` | dimension | `0dp` | dashed segment length；大于 0 时启用虚线 |
+| `shape_strokeDashGap` | dimension | `0dp` | dashed segment gap |
 
-### 圆角
+状态属性是否生效取决于控件是否能够产生对应的 Android `DrawableState`。例如普通
+`ShapeTextView` 没有 `checked` state；`ShapeCheckBox`、`ShapeRadioButton` 和
+`ShapeSwitchButton` 才会使用 checked fill/border。没有产生某个状态时，控件会回退到
+默认值。
 
-| 属性 | 格式 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `shape_radius` | dimension | `0dp` | 四个角统一圆角 |
-| `shape_radiusInTop` | dimension | 继承 `shape_radius` | 同时设置左上和右上圆角，本库扩展 |
-| `shape_radiusInBottom` | dimension | 继承 `shape_radius` | 同时设置左下和右下圆角，本库扩展 |
-| `shape_radiusInTopLeft` | dimension | 继承上级圆角 | 左上圆角 |
-| `shape_radiusInTopStart` | dimension | 继承上级圆角 | 顶部 Start 圆角，自动适配 RTL |
-| `shape_radiusInTopRight` | dimension | 继承上级圆角 | 右上圆角 |
-| `shape_radiusInTopEnd` | dimension | 继承上级圆角 | 顶部 End 圆角，自动适配 RTL |
-| `shape_radiusInBottomLeft` | dimension | 继承上级圆角 | 左下圆角 |
-| `shape_radiusInBottomStart` | dimension | 继承上级圆角 | 底部 Start 圆角，自动适配 RTL |
-| `shape_radiusInBottomRight` | dimension | 继承上级圆角 | 右下圆角 |
-| `shape_radiusInBottomEnd` | dimension | 继承上级圆角 | 底部 End 圆角，自动适配 RTL |
-
-圆角优先级为：物理方向单角 `Left/Right` > 相对方向单角 `Start/End` >
-组合圆角 `Top/Bottom` > `shape_radius`。
-
-### 填充颜色和状态
-
-| 属性 | 格式 | 说明 |
-| --- | --- | --- |
-| `shape_solidColor` | color | 默认状态填充色 |
-| `shape_solidPressedColor` | color | 按下状态填充色 |
-| `shape_solidCheckedColor` | color | 选中状态填充色，主要用于 CheckBox、RadioButton |
-| `shape_solidDisabledColor` | color | `android:enabled="false"` 时的填充色 |
-| `shape_solidFocusedColor` | color | 获取焦点时的填充色 |
-| `shape_solidSelectedColor` | color | `android:selected="true"` 时的填充色 |
-
-### 填充渐变
-
-同时设置开始色和结束色，或者提供至少两个颜色的数组，都会启用填充渐变。
-
-| 属性 | 格式/可选值 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `shape_solidGradientStartColor` | color | 无 | 渐变开始色 |
-| `shape_solidGradientCenterColor` | color | 无 | 可选的渐变中间色 |
-| `shape_solidGradientEndColor` | color | 无 | 渐变结束色 |
-| `shape_solidGradientColors` | reference | 无 | `@array` 多色渐变；配置后优先于开始/中间/结束色 |
-| `shape_solidGradientType` | `linear`、`radial`、`sweep` | `linear` | 线性、径向或扫描渐变 |
-| `shape_solidGradientOrientation` | 见下表 | `startToEnd` | 线性渐变方向 |
-| `shape_solidGradientAngle` | float | 无 | 任意线性渐变角度；配置后优先于方向枚举 |
-| `shape_solidGradientCenterX` | float/fraction | `0.5` | 径向/扫描渐变中心 X |
-| `shape_solidGradientCenterY` | float/fraction | `0.5` | 径向/扫描渐变中心 Y |
-| `shape_solidGradientRadius` | float/fraction/dimension | 当前圆角值 | 径向渐变半径 |
-
-填充和边框渐变方向都支持：
-
-| 方向值 | 含义 |
-| --- | --- |
-| `leftToRight` / `startToEnd` | 从左到右 / 从 Start 到 End |
-| `rightToLeft` / `endToStart` | 从右到左 / 从 End 到 Start |
-| `bottomToTop` | 从下到上 |
-| `topToBottom` | 从上到下 |
-| `topLeftToBottomRight` / `topStartToBottomEnd` | 左上到右下 / Start 上到 End 下 |
-| `bottomLeftToTopRight` / `bottomStartToTopEnd` | 左下到右上 / Start 下到 End 上 |
-| `topRightToBottomLeft` / `topEndToBottomStart` | 右上到左下 / End 上到 Start 下 |
-| `bottomRightToTopLeft` / `bottomEndToTopStart` | 右下到左上 / End 下到 Start 上 |
-
-### 边框和虚线
-
-| 属性 | 格式 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `shape_strokeColor` | color | transparent | 默认状态边框色 |
-| `shape_strokePressedColor` | color | 无 | 按下状态边框色 |
-| `shape_strokeCheckedColor` | color | 无 | 选中状态边框色，主要用于 CheckBox、RadioButton |
-| `shape_strokeDisabledColor` | color | 无 | 禁用状态边框色 |
-| `shape_strokeFocusedColor` | color | 无 | 聚焦状态边框色 |
-| `shape_strokeSelectedColor` | color | 无 | 选择状态边框色 |
-| `shape_strokeSize` | dimension | `0dp` | 边框宽度 |
-| `shape_strokeDashSize` | dimension | `0dp` | 每段虚线长度；大于 0 时启用虚线 |
-| `shape_strokeDashGap` | dimension | `0dp` | 虚线间隔 |
-| `shape_strokeGradientStartColor` | color | 无 | 渐变边框开始色 |
-| `shape_strokeGradientCenterColor` | color | 无 | 可选的渐变边框中间色 |
-| `shape_strokeGradientEndColor` | color | 无 | 渐变边框结束色 |
-| `shape_strokeGradientColors` | reference | 无 | `@array` 多色边框；配置后优先于三色属性 |
-| `shape_strokeGradientOrientation` | 渐变方向枚举 | `startToEnd` | 渐变边框方向 |
-| `shape_strokeGradientAngle` | float | 无 | 任意边框渐变角度；配置后优先于方向枚举 |
-
-任意角度、多色填充和边框示例：
+### Corner radius
 
 ```xml
-<!-- res/values/colors.xml：数组至少包含两个颜色，未指定位置时按等距分布。 -->
+<com.allynav.shape.view.ShapeView
+    android:layout_width="200dp"
+    android:layout_height="80dp"
+    app:shape_radius="12dp"
+    app:shape_radiusInTop="24dp"
+    app:shape_radiusInBottom="6dp" />
+```
+
+| Attribute | Description |
+| --- | --- |
+| `shape_radius` | 四个角统一圆角 |
+| `shape_radiusInTop` | 同时设置左上和右上圆角，本库扩展属性 |
+| `shape_radiusInBottom` | 同时设置左下和右下圆角，本库扩展属性 |
+| `shape_radiusInTopLeft` | 左上物理方向圆角 |
+| `shape_radiusInTopStart` | 顶部 Start 圆角，自动适配 RTL |
+| `shape_radiusInTopRight` | 右上物理方向圆角 |
+| `shape_radiusInTopEnd` | 顶部 End 圆角，自动适配 RTL |
+| `shape_radiusInBottomLeft` | 左下物理方向圆角 |
+| `shape_radiusInBottomStart` | 底部 Start 圆角，自动适配 RTL |
+| `shape_radiusInBottomRight` | 右下物理方向圆角 |
+| `shape_radiusInBottomEnd` | 底部 End 圆角，自动适配 RTL |
+
+优先级从高到低为：物理方向单角 `Left/Right` > 相对方向单角 `Start/End` > 组合圆角
+`Top/Bottom` > `shape_radius`。例如同时设置 `shape_radiusInTop="20dp"` 和
+`shape_radiusInTopLeft="4dp"` 时，左上角使用 `4dp`，右上角使用 `20dp`。
+
+### State colors and custom Drawable
+
+Shape 会根据当前 Android `DrawableState` 选择 fill 和 border。除 color 外，也可以为各
+状态指定自定义背景：
+
+| Attribute | Description |
+| --- | --- |
+| `shape_background` | 默认背景，支持 color、bitmap、Vector 和 XML `Drawable` |
+| `shape_pressedBackground` | pressed 状态背景 |
+| `shape_checkedBackground` | checked 状态背景 |
+| `shape_disabledBackground` | disabled 状态背景 |
+| `shape_focusedBackground` | focused 状态背景 |
+| `shape_selectedBackground` | selected 状态背景 |
+
+```xml
+<com.allynav.shape.view.ShapeButton
+    android:layout_width="160dp"
+    android:layout_height="48dp"
+    android:text="提交"
+    app:shape_radius="12dp"
+    app:shape_background="@drawable/button_normal"
+    app:shape_pressedBackground="@drawable/button_pressed"
+    app:shape_disabledBackground="#FFDADCE0" />
+```
+
+指定状态的 custom `Drawable` 优先于同一状态的 fill/border color；没有配置的状态继续
+回退到默认背景或默认 Shape。
+
+### Line and ring
+
+`shape_type="line"` 时使用 `shape_lineGravity` 控制线条位置。可选 flag 包括
+`top`、`bottom`、`left`、`right`、`start`、`end`、`center`，也可以组合使用。
+
+```xml
+<com.allynav.shape.view.ShapeView
+    android:layout_width="match_parent"
+    android:layout_height="1dp"
+    app:shape_type="line"
+    app:shape_lineGravity="center"
+    app:shape_strokeColor="#FF607D8B"
+    app:shape_strokeSize="1dp"
+    app:shape_strokeDashSize="6dp"
+    app:shape_strokeDashGap="4dp" />
+```
+
+`shape_type="ring"` 时可以使用以下参数：
+
+| Attribute | Description |
+| --- | --- |
+| `shape_ringInnerRadiusSize` | inner radius，优先于 ratio |
+| `shape_ringInnerRadiusRatio` | Shape 尺寸除以该 ratio 得到 inner radius |
+| `shape_ringThicknessSize` | ring thickness，优先于 ratio |
+| `shape_ringThicknessRatio` | Shape 尺寸除以该 ratio 得到 thickness |
+
+## Gradient
+
+### XML attributes
+
+Fill 和 border 都支持 linear、radial、sweep 三种 gradient。线性渐变支持预设方向和
+任意角度；radial/sweep 使用 center 与 radius 参数。
+
+| Attribute | Description |
+| --- | --- |
+| `shape_solidGradientStartColor` | fill gradient start color |
+| `shape_solidGradientCenterColor` | 可选 fill gradient center color |
+| `shape_solidGradientEndColor` | fill gradient end color |
+| `shape_solidGradientColors` | `@array` 多色 fill gradient；优先于 start/center/end |
+| `shape_solidGradientType` | `linear`、`radial`、`sweep` |
+| `shape_solidGradientOrientation` | 线性 gradient 方向 |
+| `shape_solidGradientAngle` | 任意角度线性 gradient；优先于 orientation |
+| `shape_solidGradientCenterX` | radial/sweep center X，默认 `0.5` |
+| `shape_solidGradientCenterY` | radial/sweep center Y，默认 `0.5` |
+| `shape_solidGradientRadius` | radial radius |
+| `shape_strokeGradientStartColor` | border gradient start color |
+| `shape_strokeGradientCenterColor` | 可选 border gradient center color |
+| `shape_strokeGradientEndColor` | border gradient end color |
+| `shape_strokeGradientColors` | `@array` 多色 border gradient |
+| `shape_strokeGradientOrientation` | border gradient 方向 |
+| `shape_strokeGradientAngle` | 任意角度 border gradient |
+
+线性 gradient 的 orientation：
+
+| Value | Direction |
+| --- | --- |
+| `leftToRight` / `startToEnd` | 左到右 / Start 到 End |
+| `rightToLeft` / `endToStart` | 右到左 / End 到 Start |
+| `bottomToTop` | 下到上 |
+| `topToBottom` | 上到下 |
+| `topLeftToBottomRight` / `topStartToBottomEnd` | 左上到右下 |
+| `bottomLeftToTopRight` / `bottomStartToTopEnd` | 左下到右上 |
+| `topRightToBottomLeft` / `topEndToBottomStart` | 右上到左下 |
+| `bottomRightToTopLeft` / `bottomEndToTopStart` | 右下到左上 |
+
+angle 使用 Android gradient 的坐标习惯：`0` 度为左到右，`90` 度为下到上，支持正负
+浮点数。配置 angle 后，该层的 orientation 不再生效。
+
+### XML multi-color gradient
+
+数组至少需要两个 color。未指定 positions 时，颜色按等距位置分布：
+
+```xml
+<!-- res/values/colors.xml 或 res/values/arrays.xml -->
 <array name="shape_card_gradient">
     <item>#FF3B82F6</item>
     <item>#FF22C55E</item>
@@ -443,7 +460,7 @@ xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="200dp"
     android:layout_height="52dp"
     android:gravity="center"
-    android:text="任意角度多色渐变"
+    android:text="多色渐变"
     app:shape_radius="8dp"
     app:shape_solidGradientColors="@array/shape_card_gradient"
     app:shape_solidGradientAngle="35"
@@ -452,551 +469,272 @@ xmlns:app="http://schemas.android.com/apk/res-auto"
     app:shape_strokeSize="2dp" />
 ```
 
-角度采用 Android 渐变习惯：`0` 度从左向右，`90` 度从下向上，可传任意正负
-浮点数。角度只作用于 `linear`，径向和扫描渐变继续使用各自的中心、半径参数。
-Java 设置数组时 Builder 会复制数组，最后仍需调用 `intoBackground()`：
+## Shadow
 
-```java
-shapeTextView.getShapeDrawableBuilder()
-        .setSolidGradientColors(new int[] {
-                0xFF3B82F6, 0xFF22C55E, 0xFFF59E0B, 0xFFEF4444
-        })
-        .setSolidGradientAngle(35f)
-        .setStrokeGradientColors(new int[] {0xFFFFFFFF, 0xFF22C55E})
-        .setStrokeGradientAngle(125f)
-        .intoBackground();
-```
+阴影使用 bitmap cache 和 blur mask 绘制，不依赖系统 `elevation`。因此 shadow 的 color、
+blur size、offset、spread 和占位空间都可以独立控制。
 
-虚线边框示例：
-
-```xml
-app:shape_strokeColor="#607D8B"
-app:shape_strokeSize="1dp"
-app:shape_strokeDashSize="6dp"
-app:shape_strokeDashGap="4dp"
-```
-
-虚线线条示例：
-
-```xml
-<com.allynav.shape.view.ShapeView
-    android:layout_width="match_parent"
-    android:layout_height="1dp"
-    app:shape_type="line"
-    app:shape_lineGravity="center"
-    app:shape_strokeColor="#607D8B"
-    app:shape_strokeSize="1dp"
-    app:shape_strokeDashSize="6dp"
-    app:shape_strokeDashGap="4dp" />
-```
-
-因此，虚线边框和 ShadowLayout 风格的虚线分隔线都支持。
-
-### 真实阴影
-
-| 属性 | 格式 | 默认值 | 说明 |
+| Attribute | Format | Default | Description |
 | --- | --- | --- | --- |
-| `shape_shadowSize` | dimension | `0dp` | 模糊半径；大于 0 才启用阴影 |
-| `shape_shadowColor` | color | `#40000000` | 阴影颜色和透明度 |
+| `shape_shadowSize` | dimension | `0dp` | blur radius；大于 0 才启用 |
+| `shape_shadowColor` | color | `#40000000` | shadow color and alpha |
 | `shape_shadowOffsetX` | dimension | `0dp` | 水平偏移，正值向右 |
 | `shape_shadowOffsetY` | dimension | `0dp` | 垂直偏移，正值向下 |
-| `shape_shadowSpread` | dimension | `0dp` | 模糊前向外扩张的距离 |
-| `shape_shadowSymmetry` | boolean | `false` | 两侧预留对称阴影空间 |
-| `shape_shadowHidden` | boolean | `false` | 临时隐藏整个阴影，保留其他配置 |
-| `shape_shadowHiddenLeft` | boolean | `false` | 隐藏左侧阴影并取消左侧阴影占位 |
-| `shape_shadowHiddenTop` | boolean | `false` | 隐藏顶部阴影并取消顶部阴影占位 |
-| `shape_shadowHiddenRight` | boolean | `false` | 隐藏右侧阴影并取消右侧阴影占位 |
-| `shape_shadowHiddenBottom` | boolean | `false` | 隐藏底部阴影并取消底部阴影占位 |
-| `shape_shadowBitmapScale` | float | `0.5` | 阴影缓存精度，运行时限制为 `0.25..1.0` |
-
-完整阴影示例：
+| `shape_shadowSpread` | dimension | `0dp` | blur 前向外扩张的距离 |
+| `shape_shadowSymmetry` | boolean | `false` | 左右、上下分别使用对称 inset |
+| `shape_shadowHidden` | boolean | `false` | 临时隐藏整个 shadow |
+| `shape_shadowHiddenLeft` | boolean | `false` | 隐藏左侧 shadow 并取消该侧占位 |
+| `shape_shadowHiddenTop` | boolean | `false` | 隐藏顶部 shadow 并取消该侧占位 |
+| `shape_shadowHiddenRight` | boolean | `false` | 隐藏右侧 shadow 并取消该侧占位 |
+| `shape_shadowHiddenBottom` | boolean | `false` | 隐藏底部 shadow 并取消该侧占位 |
+| `shape_shadowBitmapScale` | float | `0.5` | shadow cache scale，运行时限制为 `0.25..1.0` |
 
 ```xml
 <com.allynav.shape.view.ShapeTextView
-    android:layout_width="200dp"
-    android:layout_height="88dp"
+    android:layout_width="220dp"
+    android:layout_height="96dp"
     android:gravity="center"
     android:text="真实阴影"
-    app:shape_solidColor="#FFFFFF"
+    app:shape_solidColor="#FFFFFFFF"
     app:shape_radius="14dp"
     app:shape_shadowColor="#66000000"
     app:shape_shadowSize="16dp"
-    app:shape_shadowOffsetX="0dp"
     app:shape_shadowOffsetY="6dp"
     app:shape_shadowSpread="1dp"
     app:shape_shadowSymmetry="false"
     app:shape_shadowBitmapScale="0.5" />
 ```
 
-阴影由缓存位图和模糊遮罩绘制，不依赖系统 `elevation`，因此颜色、偏移、扩散和圆角可控。
-阴影绘制在 View 自己的边界内，库会把阴影占位叠加到原始 padding 上。固定宽高包含形状和阴影空间，
-`ShapeLayout` 的可用子内容区域也会相应减少。
+阴影空间位于 View 自身边界内，固定宽高会同时包含 Shape 和 shadow inset。尺寸较小时，
+主体内容可能被压缩；需要为 shadow 预留足够的宽高。`ShapeLayout` 的可用子内容区域也
+会随 shadow inset 相应减少。
 
-### Ripple 水波纹
+## Ripple and Click State
 
-| 属性 | 格式 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `shape_rippleEnable` | boolean | `false` | 启用 Android 原生 Ripple |
-| `shape_rippleColor` | color | `#24000000` | 水波纹颜色 |
+### Ripple
+
+`shape_rippleEnable` 默认关闭，开启后使用 Android `RippleDrawable`，并根据当前 Shape
+轮廓生成 mask，圆角位置不会出现矩形 ripple：
 
 ```xml
 app:shape_rippleEnable="true"
 app:shape_rippleColor="#26007AFF"
 ```
 
-Ripple 会包裹最终的 Shape/状态背景，并使用相同形状作为 Mask，所以圆角处不会出现矩形水波纹。
-
-### 自定义 Drawable 和状态背景
-
-这些属性可以引用 Color、Bitmap、Vector 或 XML Drawable。背景会按当前形状和圆角裁剪。
-
-| 属性 | 格式 | 说明 |
-| --- | --- | --- |
-| `shape_background` | reference/color | 默认背景 |
-| `shape_pressedBackground` | reference/color | 按下状态背景 |
-| `shape_checkedBackground` | reference/color | 选中状态背景 |
-| `shape_disabledBackground` | reference/color | 禁用状态背景 |
-| `shape_focusedBackground` | reference/color | 聚焦状态背景 |
-| `shape_selectedBackground` | reference/color | 选择状态背景 |
-
-```xml
-app:shape_background="@drawable/button_normal"
-app:shape_pressedBackground="@drawable/button_pressed"
-app:shape_disabledBackground="#DADCE0"
-app:shape_radius="12dp"
-```
-
-当 Drawable 状态和填充/边框状态同时配置时，该状态的 Drawable 优先。
-
-### 线和圆环
-
-| 属性 | 格式/可选值 | 默认值 | 说明 |
+| Attribute | Format | Default | Description |
 | --- | --- | --- | --- |
-| `shape_lineGravity` | `top`、`bottom`、`left`、`right`、`start`、`end`、`center`，可组合 | `center` | 仅 `shape_type="line"` 生效 |
-| `shape_ringInnerRadiusSize` | dimension | 自动 | 圆环内半径，优先于比例 |
-| `shape_ringInnerRadiusRatio` | float | `3.0` | 圆环尺寸 / 比例 = 内半径 |
-| `shape_ringThicknessSize` | dimension | 自动 | 圆环厚度，优先于比例 |
-| `shape_ringThicknessRatio` | float | `9.0` | 圆环尺寸 / 比例 = 厚度 |
+| `shape_rippleEnable` | boolean | `false` | 是否启用 Android native Ripple |
+| `shape_rippleColor` | color | `#24000000` | Ripple color |
 
-### 文本颜色、渐变和描边
+### Non-clickable but enabled
 
-适用于 `ShapeTextView`、`ShapeButton`、`ShapeEditText`、`ShapeCheckBox` 和
-`ShapeRadioButton`。
+`shape_clickable` 是库独立的交互开关，与 `android:enabled` 分离：
 
-| 属性 | 格式/可选值 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `shape_textColor` | color | 当前 `android:textColor` | 默认文本颜色 |
-| `shape_textPressedColor` | color | 无 | 按下状态文本颜色 |
-| `shape_textCheckedColor` | color | 无 | 选中状态文本颜色，主要用于 CheckBox、RadioButton |
-| `shape_textDisabledColor` | color | 无 | 禁用状态文本颜色 |
-| `shape_textFocusedColor` | color | 无 | 聚焦状态文本颜色 |
-| `shape_textSelectedColor` | color | 无 | 选择状态文本颜色 |
-| `shape_textStartColor` | color | 无 | 文本渐变开始色 |
-| `shape_textCenterColor` | color | 无 | 可选的文本渐变中间色 |
-| `shape_textEndColor` | color | 无 | 文本渐变结束色 |
-| `shape_textGradientOrientation` | `horizontal`、`vertical` | `horizontal` | 文本渐变方向 |
-| `shape_textStrokeColor` | color | transparent | 文本描边颜色 |
-| `shape_textStrokeSize` | dimension | `0dp` | 文本描边宽度 |
-
-文本渐变同样要求同时设置开始色和结束色。
-
-### 状态文本内容
-
-适用于所有文本控件。没有匹配状态文本时，显示 `android:text` 或最后一次 `setText` 的内容。
-
-| 属性 | 格式 | 说明 |
-| --- | --- | --- |
-| `shape_textPressed` | string | 按下时显示的文本 |
-| `shape_textChecked` | string | 选中时显示的文本 |
-| `shape_textDisabled` | string | 禁用时显示的文本 |
-| `shape_textFocused` | string | 聚焦时显示的文本 |
-| `shape_textSelected` | string | 选择时显示的文本 |
+- `shape_clickable="false"` 时，控件仍保持 `enabled=true`，所以 enabled 状态的文字色、
+  图片 tint/src 和其他 state 逻辑仍然有效。
+- 控件自身不响应 click；对于 Shape ViewGroup，子 View 仍可继续接收自己的触摸事件。
+- `shape_nonClickableBackground` 可指定该状态使用的 color 或 custom `Drawable`。
+- `android:enabled="false"` 仍然优先进入 disabled state，不会被误认为只是不可点击。
 
 ```xml
-android:text="提交"
-app:shape_textPressed="松开提交"
-app:shape_textDisabled="暂不可用"
-```
-
-禁用状态优先匹配。请使用 `android:enabled="false"` 进入禁用状态，而不是用
-`android:clickable="false"` 模拟禁用。
-
-### ShapeEditText 输入框增强
-
-`ShapeEditText` 默认保持 `AppCompatEditText` 的原生输入行为。配置
-`shape_closeKeyboardEnable="true"` 后，输入法点击完成/前往按钮或硬件回车会自动收起键盘，
-输入框获得焦点时会全选文本，失去焦点时隐藏光标并清除文本选择。
-
-```xml
-<com.allynav.shape.view.ShapeEditText
-    android:layout_width="match_parent"
+<com.allynav.shape.view.ShapeButton
+    android:layout_width="160dp"
     android:layout_height="48dp"
-    android:hint="请输入名称"
-    app:shape_closeKeyboardEnable="true"
-    app:shape_radius="4dp"
-    app:shape_strokeColor="#B0BEC5"
-    app:shape_strokeSize="1dp" />
+    android:enabled="true"
+    android:text="暂不可点击"
+    app:shape_clickable="false"
+    app:shape_nonClickableBackground="#FFBDBDBD"
+    app:shape_solidColor="#FF1976D2" />
 ```
 
-该功能不依赖 `setOnEditorActionListener` 或 `setOnFocusChangeListener`，业务代码设置这些
-监听器后，组件自己的行为仍然有效。Java 中也可以动态控制：
+## Text Components
 
-```java
-shapeEditText.setCloseKeyboardEnabled(true);
-// 需要时主动收起键盘并转移焦点。
-shapeEditText.closeKeyboard();
-```
+普通 text color、gradient 和 stroke 适用于 `ShapeTextView`、`ShapeButton`、
+`ShapeEditText`、`ShapeCheckBox` 和 `ShapeRadioButton`。`checked` text color 只有在控件
+具有 checked state 时才会生效。
 
-也可以通过 `getCloseKeyboardEditTextDelegate()` 获取委托。关闭功能后会恢复输入框创建时的
-IME 选项和光标可见性。
+### Text color, gradient and stroke
 
-### ShapeTextView 固定高度自适应
+| Attribute | Description |
+| --- | --- |
+| `shape_textColor` | 默认 text color；未配置时使用 `android:textColor` |
+| `shape_textPressedColor` | pressed text color |
+| `shape_textCheckedColor` | checked text color；适用于 `CheckBox`、`RadioButton` 等 checked 控件 |
+| `shape_textDisabledColor` | disabled text color |
+| `shape_textFocusedColor` | focused text color |
+| `shape_textSelectedColor` | selected text color |
+| `shape_textStartColor` | text gradient start color |
+| `shape_textCenterColor` | 可选 text gradient center color |
+| `shape_textEndColor` | text gradient end color |
+| `shape_textGradientOrientation` | `horizontal` 或 `vertical` |
+| `shape_textStrokeColor` | text stroke color |
+| `shape_textStrokeSize` | text stroke width |
 
-该能力的行为参考 [AdaptiveTextView](https://github.com/AndrewSuan/AdaptiveTextView)，仅适用于
-`ShapeTextView`。它不会缩小字号，而是在固定可用高度不足时压缩行间距、减少 `maxLines`，
-或者先压缩行间距再减少行数。默认关闭，不会影响现有布局。
+同时配置 text gradient start 和 end color 后启用 text gradient。Java 中通过
+`getTextColorBuilder()` 配置，最后调用 `intoTextColor()`。
 
-| 属性 | 格式/可选值 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `shape_adaptiveTextEnable` | boolean | `false` | 是否启用固定高度文本自适应 |
-| `shape_adaptiveTextMode` | `reduceLines`、`reduceLineSpacing`、`reduceLineSpacingThenLines` | `reduceLines` | 高度不足时采用的策略 |
-| `shape_adaptiveMinLines` | integer | `1` | 减少行数时允许保留的最小行数 |
-| `shape_adaptiveMinLineSpacingExtra` | dimension | 自动 | `setLineSpacing` 的 add 参数下限；未配置时根据字体 descent 自动计算 |
+### Stateful text content
+
+文本控件通过 `TextStateDelegate` 支持 state text：
+
+| Attribute | Description |
+| --- | --- |
+| `shape_textPressed` | pressed 时显示的文本 |
+| `shape_textChecked` | checked 时显示的文本 |
+| `shape_textDisabled` | disabled 时显示的文本 |
+| `shape_textFocused` | focused 时显示的文本 |
+| `shape_textSelected` | selected 时显示的文本 |
 
 ```xml
 <com.allynav.shape.view.ShapeTextView
-    android:layout_width="match_parent"
-    android:layout_height="80dp"
-    android:ellipsize="end"
-    android:maxLines="3"
-    android:text="需要在固定高度内完整排布的多行文本"
-    android:textSize="23sp"
-    app:shape_adaptiveTextEnable="true"
-    app:shape_adaptiveTextMode="reduceLineSpacingThenLines"
-    app:shape_adaptiveMinLines="1" />
+    android:layout_width="160dp"
+    android:layout_height="48dp"
+    android:text="提交"
+    app:shape_textPressed="松开提交"
+    app:shape_textDisabled="暂不可用" />
 ```
 
-文本、字号、内边距、控件尺寸、`maxLines` 或行间距发生变化后，控件会先恢复 XML/Java
-配置的基准值再重新计算，不会持续累减 `maxLines`。该功能要求 `layout_height` 为固定尺寸且
-配置有限的 `android:maxLines`；`wrap_content`、`match_parent` 或未限制行数时不会执行调整。
+`ShapeEditText` 会同步用户通过键盘输入、删除、粘贴产生的 `Editable` 内容；状态文本
+内部的 `setText()` 不会反过来污染默认文本。因此输入框失焦后不会恢复到 XML 初始化旧值。
 
-### ShapeTextView 自动字号
+### Adaptive text and AutoFit
 
-该能力参考 XUI 的 `AutoFitTextView`，通过二分查找在有限 `android:maxLines` 内找到合适的字号，
-不会改动 Shape 背景、阴影或文字颜色。默认关闭；需要时可通过 XML 开启：
+`ShapeTextView` 提供两套可独立开启的文字适配能力，默认都关闭：
 
-| 属性 | 格式 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `shape_autoFitTextEnable` | boolean | `false` | 是否开启自动字号 |
-| `shape_autoFitMinTextSize` | dimension | `8sp` | 允许使用的最小字号 |
-| `shape_autoFitMaxTextSize` | dimension | `android:textSize` | 允许使用的最大字号 |
-| `shape_autoFitPrecision` | float | `0.5` | 二分查找精度，越小越精确但计算更多 |
-| `shape_textBaselineEnabled` | boolean | 自动 | 是否向父布局提供文字基线；AutoFit 开启时默认关闭，普通文本默认开启 |
+#### Fixed-height Adaptive text
+
+用于固定高度控件，在高度不足时压缩 line spacing、减少行数，或按指定组合策略处理。
+
+| Attribute | Default | Description |
+| --- | --- | --- |
+| `shape_adaptiveTextEnable` | `false` | 是否开启 fixed-height Adaptive text |
+| `shape_adaptiveTextMode` | `reduceLines` | `reduceLines`、`reduceLineSpacing`、`reduceLineSpacingThenLines` |
+| `shape_adaptiveMinLines` | `1` | 允许保留的最小行数 |
+| `shape_adaptiveMinLineSpacingExtra` | auto | `setLineSpacing` 的 add 参数下限 |
+
+#### AutoFit text size
+
+用于在可用宽度内自动缩小字号：
+
+| Attribute | Default | Description |
+| --- | --- | --- |
+| `shape_autoFitTextEnable` | `false` | 是否开启 AutoFit |
+| `shape_autoFitMinTextSize` | `8sp` | 最小字号 |
+| `shape_autoFitMaxTextSize` | `android:textSize` | 最大字号 |
+| `shape_autoFitPrecision` | `0.5` | 二分查找精度 |
+| `shape_textBaselineEnabled` | auto | 是否向父 `LinearLayout` 提供 baseline |
+
+AutoFit 开启时，若没有显式配置 `shape_textBaselineEnabled`，控件默认不向父
+`LinearLayout` 输出 baseline，避免 GONE -> VISIBLE 或字号变化时发生纵向跳动。需要表单
+基线对齐时可以显式设置：
 
 ```xml
-<com.allynav.shape.view.ShapeTextView
-    android:layout_width="180dp"
-    android:layout_height="56dp"
-    android:maxLines="2"
-    android:text="需要在有限宽度和行数内自动缩小的文字"
-    android:textSize="20sp"
-    app:shape_autoFitTextEnable="true"
-    app:shape_autoFitMinTextSize="12sp"
-    app:shape_autoFitPrecision="0.5" />
+app:shape_textBaselineEnabled="true"
 ```
 
-该能力要求有限的 `android:maxLines`；未限制行数时不会调整。它可以和固定高度自适应同时开启，
-执行顺序是先自动缩小字号，仍然放不下时再按 `shape_adaptiveTextMode` 处理行间距或行数。
+### Marquee
 
-开启 AutoFit 后，`ShapeTextView` 默认不会向横向 `LinearLayout` 提供文字基线，因此动态
-`GONE/VISIBLE` 或字号变化不会带动固定高度按钮上下移动，父容器无需重复配置
-`android:baselineAligned="false"`。表单等确实需要文字基线对齐的场景，可在对应控件上设置
-`app:shape_textBaselineEnabled="true"`，或调用 `setTextBaselineEnabled(true)`。
+开启 `shape_marqueeEnable` 后，控件会自动设置为 single line，并在最终测量、布局和屏幕
+可见后启动 system Marquee：
 
-### ShapeTextView 跑马灯
-
-该能力使用 Android 原生 `MARQUEE`，由组件根据窗口、父容器和自身可见性自动维护
-`selected`。控件从 `GONE` 恢复为 `VISIBLE` 后会在最终尺寸稳定时自动重启，不需要业务代码
-手动调用 `setSelected(true)`。默认只要求控件与窗口存在可见交集；需要完整进入屏幕后才滚动时，
-可显式开启 `shape_marqueeRequireFullyVisible`。
-
-DataBinding、LiveData 或业务代码动态替换文本时，组件会先停止旧文本的 Marquee，并在新文本
-完成测量和布局、进入绘制前重新启动。因此文本可以在短名称和长名称之间反复切换，调用方
-不需要额外切换 `selected`，长文本也不会停留在静态省略号状态。
-
-系统 Marquee 为了滚动会在内部使用 `selected=true`，但库已经将这个内部状态与业务选中状态
-分离。跑马灯滚动不会触发 `shape_textSelectedColor`、`shape_solidSelectedColor`、状态背景、
-复合图片 selected tint 或状态文本；业务代码调用 `setSelected(true)` 时，上述 selected 状态
-仍会正常生效。关闭或重新开启跑马灯也会保留业务原本的 selected 状态。
-
-父 `ViewGroup` 调用 `setSelected(true)` 时，Android 会把 selected 分发给子
-`ShapeTextView`，因此选项卡容器的选中背景、子控件白字和图标 selected tint 可以同时生效。
-需要让 XML 初始状态或父控件全部 DrawableState 始终由子控件继承时，可额外设置
-`android:duplicateParentState="true"`；跑马灯内部状态不会覆盖或污染父控件状态。
-
-跑马灯和 `shape_autoFitTextEnable` 可以同时开启。自动字号会在测量阶段完成，控件首帧和后续帧
-使用同一字号、基线与高度，避免动态显示后文字或控件发生位置跳动；缩到最小字号仍然超宽时，
-原生跑马灯继续展示完整文本。
-默认关闭，开启后控件会自动设置为单行：
-
-| 属性 | 格式 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `shape_marqueeEnable` | boolean | `false` | 是否开启系统跑马灯 |
-| `shape_marqueeRepeatLimit` | integer | `-1` | 重复次数，`-1` 表示无限循环 |
-| `shape_marqueeRequireFullyVisible` | boolean | `false` | 是否要求控件完整位于屏幕内才滚动；普通按钮建议保持 `false` |
+| Attribute | Default | Description |
+| --- | --- | --- |
+| `shape_marqueeEnable` | `false` | 是否开启 system Marquee |
+| `shape_marqueeRepeatLimit` | `-1` | 重复次数；`-1` 表示无限循环 |
+| `shape_marqueeRequireFullyVisible` | `false` | 是否要求控件完整位于屏幕内才滚动 |
 
 ```xml
 <com.allynav.shape.view.ShapeTextView
     android:layout_width="180dp"
     android:layout_height="48dp"
     android:gravity="center_vertical"
-    android:text="超过控件宽度后自动滚动显示的文字"
-    android:textSize="16sp"
+    android:ellipsize="marquee"
+    android:singleLine="true"
+    android:text="超过控件宽度后自动滚动显示的长文本"
     app:shape_marqueeEnable="true"
     app:shape_marqueeRepeatLimit="-1" />
 ```
 
-### CheckBox 和 RadioButton 图标
+以下行为已经由控件内部处理：
 
-| 属性 | 格式 | 说明 |
-| --- | --- | --- |
-| `shape_buttonDrawable` | reference | 默认按钮图标 |
-| `shape_buttonPressedDrawable` | reference | 按下状态图标 |
-| `shape_buttonCheckedDrawable` | reference | 选中状态图标 |
-| `shape_buttonDisabledDrawable` | reference | 禁用状态图标 |
-| `shape_buttonFocusedDrawable` | reference | 聚焦状态图标 |
-| `shape_buttonSelectedDrawable` | reference | 选择状态图标 |
+- 文本从短内容切换为长内容时，自动重建 layout 并重新触发 Marquee。
+- 控件由 `GONE`/`INVISIBLE` 变为可见或父布局重新排版后，会在尺寸稳定时重新判断。
+- 默认只要求控件与窗口存在可见交集；需要完整可见时设置
+  `shape_marqueeRequireFullyVisible="true"`。
+- Marquee 内部为启动滚动而使用的 `selected=true` 与业务 selected 状态隔离。
 
-## Java 动态设置
+因此，Marquee 不会触发 `shape_textSelectedColor`、`shape_solidSelectedColor`、
+`shape_selectedTint` 或 selected state text。业务代码调用 `setSelected(true)` 时，
+selected 状态仍然正常生效。
 
-### 修改 ShapeButton 颜色
+需要业务选中状态与父容器同步时，可以使用：
 
-```java
-ShapeButton shapeButton = findViewById(R.id.btn_main_test);
-shapeButton.setOnClickListener(new View.OnClickListener() {
-    @Override
-    public void onClick(View v) {
-
-        shapeButton.getShapeDrawableBuilder()
-                .setSolidColor(0xFF000000)
-                .setStrokeColor(0xFF5A8DDF)
-                // 注意：最后需要调用 intoBackground 方法才能生效
-                .intoBackground();
-
-        shapeButton.getTextColorBuilder()
-                .setTextColor(0xFFFFFFFF)
-                // 注意：最后需要调用 intoTextColor 方法才能生效
-                .intoTextColor();
-
-        shapeButton.setText("颜色已经改变啦");
-    }
-});
+```xml
+android:duplicateParentState="true"
 ```
 
-导入本地控件：
+### ShapeEditText
 
-```java
-import com.allynav.shape.view.ShapeButton;
+输入框增强默认关闭，通过以下属性开启：
+
+```xml
+<com.allynav.shape.view.ShapeEditText
+    android:layout_width="match_parent"
+    android:layout_height="48dp"
+    android:inputType="numberDecimal"
+    android:text="2.0"
+    app:shape_closeKeyboardEnable="true" />
 ```
 
-### 动态设置真实阴影、圆角和 Ripple
+`shape_closeKeyboardEnable="true"` 提供：
 
-Builder 中所有尺寸参数都是像素，不是 dp。可以先提供一个转换方法：
+- IME Done/Go/Enter action 收起 keyboard
+- hardware Enter 收起 keyboard
+- 获得 focus 时全选文本
+- 失去 focus 时隐藏 cursor 并清除 selection
+- 用户编辑内容同步为 `TextStateDelegate` 的 default text
 
-```java
-private int dp(float value) {
-    return Math.round(value * getResources().getDisplayMetrics().density);
-}
-```
-
-```java
-shapeButton.getShapeDrawableBuilder()
-        .setSolidColor(0xFFFFFFFF)
-        .setTopRadius(dp(18))
-        .setBottomRadius(dp(10))
-        .setShadowSize(dp(14))
-        .setShadowColor(0x52000000)
-        .setShadowOffsetY(dp(5))
-        .setShadowSpread(dp(1))
-        .setShadowSymmetry(false)
-        .setShadowHiddenLeft(false)
-        .setShadowHiddenTop(false)
-        .setShadowHiddenRight(false)
-        .setShadowHiddenBottom(false)
-        .setShadowBitmapScale(0.5f)
-        .setRippleEnable(true)
-        .setRippleColor(0x1F000000)
-        .intoBackground();
-```
-
-### 动态设置状态颜色
+动态开关：
 
 ```java
-shapeButton.getShapeDrawableBuilder()
-        .setSolidColor(0xFF2563EB)
-        .setSolidPressedColor(0xFF1D4ED8)
-        .setSolidDisabledColor(0xFF94A3B8)
-        .setStrokeColor(0xFF1E40AF)
-        .setStrokePressedColor(0xFF1E3A8A)
-        .setStrokeSize(dp(1))
-        .intoBackground();
-
-shapeButton.getTextColorBuilder()
-        .setTextColor(0xFFFFFFFF)
-        .setTextPressedColor(0xFFE2E8F0)
-        .setTextDisabledColor(0xFFF1F5F9)
-        .intoTextColor();
+shapeEditText.setCloseKeyboardEnabled(true);
+shapeEditText.closeKeyboard();
 ```
 
-状态色 setter 接受 `Integer` 的方法可以传 `null`，用于移除对应状态配置。
+### CheckBox and RadioButton icons
 
-### 动态设置渐变和虚线
+`ShapeCheckBox` 和 `ShapeRadioButton` 支持各状态 button Drawable：
 
-```java
-import com.allynav.shape.drawable.ShapeGradientOrientation;
-
-shapeButton.getShapeDrawableBuilder()
-        .setSolidGradientColors(0xFF0EA5E9, 0xFF2563EB)
-        .setSolidGradientOrientation(ShapeGradientOrientation.LEFT_TO_RIGHT)
-        .setStrokeColor(0xFFFFFFFF)
-        .setStrokeSize(dp(1))
-        .setStrokeDashSize(dp(6))
-        .setStrokeDashGap(dp(4))
-        .intoBackground();
-```
-
-### 动态设置 Drawable 状态背景
-
-```java
-import androidx.appcompat.content.res.AppCompatResources;
-
-shapeButton.getShapeDrawableBuilder()
-        .setBackgroundDrawable(
-                AppCompatResources.getDrawable(this, R.drawable.button_normal))
-        .setPressedBackgroundDrawable(
-                AppCompatResources.getDrawable(this, R.drawable.button_pressed))
-        .setDisabledBackgroundDrawable(
-                AppCompatResources.getDrawable(this, R.drawable.button_disabled))
-        .setRadius(dp(12))
-        .intoBackground();
-```
-
-### 动态设置状态文本
-
-`TextStateDelegate` 的 setter 会立即刷新，不需要额外调用 `into...`：
-
-```java
-shapeButton.getTextStateDelegate()
-        .setPressedText("松开提交")
-        .setDisabledText("暂不可用")
-        .setFocusedText("继续提交");
-```
-
-### 动态设置 ShapeTextView 自适应
-
-```java
-shapeTextView.setAdaptiveTextMode(
-        ShapeTextView.ADAPTIVE_MODE_REDUCE_LINE_SPACING_THEN_LINES);
-shapeTextView.setAdaptiveMinLines(1);
-shapeTextView.setAdaptiveTextEnabled(true);
-```
-
-`setAdaptiveMinLineSpacingExtra(float)` 的单位是 px。调用
-`clearAdaptiveMinLineSpacingExtra()` 可以恢复为按字体 descent 自动计算下限。
-
-### 动态设置自动字号和跑马灯
-
-```java
-shapeTextView.setAutoFitMinTextSize(12f); // 单位：sp
-shapeTextView.setAutoFitPrecision(0.5f);
-shapeTextView.setAutoFitTextEnabled(true);
-
-shapeTextView.setShapeMarqueeRepeatLimit(-1);
-shapeTextView.setMarqueeRequireFullyVisible(true);
-shapeTextView.setMarqueeEnabled(true);
-```
-
-关闭 `setMarqueeEnabled(false)` 会恢复控件创建时的单行、行数和 `ellipsize` 配置；关闭
-`setAutoFitTextEnabled(false)` 会恢复调用前的字号。
-
-为方便从 XUI `AutoFitTextView` 迁移，也保留了 `setEnableFit`、`enableFit`、`isEnableFit`、
-`setMinTextSize`、`setMaxTextSize` 和 `setPrecision` 这些兼容方法。
-
-### 动态设置 CheckBox 或 RadioButton 图标
-
-```java
-shapeCheckBox.getButtonDrawableBuilder()
-        .setButtonDrawable(AppCompatResources.getDrawable(this, R.drawable.ic_unchecked))
-        .setButtonCheckedDrawable(AppCompatResources.getDrawable(this, R.drawable.ic_checked))
-        .setButtonDisabledDrawable(AppCompatResources.getDrawable(this, R.drawable.ic_disabled))
-        .intoButtonDrawable();
-```
-
-## Builder 方法速查
-
-### ShapeDrawableBuilder
-
-通过所有控件的 `getShapeDrawableBuilder()` 获取。
-
-| 分类 | 方法 |
+| Attribute | Description |
 | --- | --- |
-| 形状 | `setType`、`setWidth`、`setHeight`、`setLineGravity` |
-| 圆角 | `setRadius`、`setRadiusRelative`、`setTopLeftRadius`、`setTopRightRadius`、`setBottomLeftRadius`、`setBottomRightRadius`、`setTopRadius`、`setBottomRadius` |
-| 填充状态 | `setSolidColor`、`setSolidPressedColor`、`setSolidCheckedColor`、`setSolidDisabledColor`、`setSolidFocusedColor`、`setSolidSelectedColor` |
-| 填充渐变 | `setSolidGradientColors`、`setSolidGradientOrientation`、`setSolidGradientType`、`setSolidGradientCenterX`、`setSolidGradientCenterY`、`setSolidGradientRadius`、`clearSolidGradientColors` |
-| 边框 | `setStrokeColor`、`setStrokePressedColor`、`setStrokeCheckedColor`、`setStrokeDisabledColor`、`setStrokeFocusedColor`、`setStrokeSelectedColor`、`setStrokeSize`、`setStrokeDashSize`、`setStrokeDashGap` |
-| 边框渐变 | `setStrokeGradientColors`、`setStrokeGradientOrientation`、`clearStrokeGradientColors` |
-| 圆环 | `setRingInnerRadiusSize`、`setRingInnerRadiusRatio`、`setRingThicknessSize`、`setRingThicknessRatio` |
-| 阴影 | `setShadowHidden`、`setShadowSize`、`setShadowColor`、`setShadowOffsetX`、`setShadowOffsetY`、`setShadowSpread`、`setShadowSymmetry`、`setShadowHiddenLeft`、`setShadowHiddenTop`、`setShadowHiddenRight`、`setShadowHiddenBottom`、`setShadowBitmapScale` |
-| Ripple | `setRippleEnable`、`setRippleColor` |
-| 独立点击状态 | `setShapeClickable`、`setNonClickableBackgroundDrawable`、`setNonClickableBackgroundColor` |
-| Drawable 状态 | `setBackgroundDrawable`、`setPressedBackgroundDrawable`、`setCheckedBackgroundDrawable`、`setDisabledBackgroundDrawable`、`setFocusedBackgroundDrawable`、`setSelectedBackgroundDrawable` |
-| 应用/清除 | `intoBackground`、`clearBackground` |
+| `shape_buttonDrawable` | 默认按钮图标 |
+| `shape_buttonPressedDrawable` | pressed 状态图标 |
+| `shape_buttonCheckedDrawable` | checked 状态图标 |
+| `shape_buttonDisabledDrawable` | disabled 状态图标 |
+| `shape_buttonFocusedDrawable` | focused 状态图标 |
+| `shape_buttonSelectedDrawable` | selected 状态图标 |
 
-形状常量位于 `com.allynav.shape.drawable.ShapeType`：`RECTANGLE`、`OVAL`、`LINE`、`RING`。
-渐变类型常量位于 `ShapeGradientType`：`LINEAR_GRADIENT`、`RADIAL_GRADIENT`、
-`SWEEP_GRADIENT`。
+## Image Components
 
-### TextColorBuilder
+### ShapeTextView compound Drawable tint
 
-通过文本控件的 `getTextColorBuilder()` 获取。
+`ShapeTextView` 支持对 `android:drawableStart`、`drawableTop`、`drawableEnd` 和
+`drawableBottom` 统一设置 state tint。Android `TextView` 只提供一份 compound drawable
+tint，因此四个方向共用同一组状态颜色。
 
-| 分类 | 方法 |
+| Attribute | Description |
 | --- | --- |
-| 状态色 | `setTextColor`、`setTextPressedColor`、`setTextCheckedColor`、`setTextDisabledColor`、`setTextFocusedColor`、`setTextSelectedColor` |
-| 渐变 | `setTextGradientColors`、`setTextGradientOrientation`、`clearTextGradientColor` |
-| 描边 | `setTextStrokeColor`、`setTextStrokeSize`、`clearTextStrokeColor` |
-| 应用 | `intoTextColor` |
+| `shape_enableTint` | enabled 普通 tint；未配置时保留图片自身颜色 |
+| `shape_pressedTint` | pressed tint |
+| `shape_checkedTint` | checked tint |
+| `shape_disableTint` | disabled tint |
+| `shape_focusedTint` | focused tint |
+| `shape_selectedTint` | selected tint |
+| `shape_tint` | `shape_enableTint` 的兼容名称 |
+| `shape_disabledTint` | `shape_disableTint` 的兼容名称 |
 
-### ButtonDrawableBuilder
-
-仅 `ShapeCheckBox` 和 `ShapeRadioButton` 提供 `getButtonDrawableBuilder()`。
-
-| 分类 | 方法 |
-| --- | --- |
-| 图标状态 | `setButtonDrawable`、`setButtonPressedDrawable`、`setButtonCheckedDrawable`、`setButtonDisabledDrawable`、`setButtonFocusedDrawable`、`setButtonSelectedDrawable` |
-| 应用 | `intoButtonDrawable` |
-
-### ShapeTextView 复合图片 tint
-
-`ShapeTextView` 支持对 `android:drawableStart`、`android:drawableTop`、`android:drawableEnd`
-和 `android:drawableBottom` 统一设置状态 tint。Android 的 TextView 只提供一份复合图片 tint，
-因此四个方向会使用同一组状态颜色。
-
-| 属性 | 格式 | 说明 |
-| --- | --- | --- |
-| `shape_enableTint` | color | 普通启用状态 tint；不配置时保留图片自身颜色 |
-| `shape_pressedTint` | color | 按下状态 tint |
-| `shape_checkedTint` | color | checked 状态 tint，供扩展控件使用 |
-| `shape_disableTint` | color | `enabled=false` 时的 tint |
-| `shape_focusedTint` | color | 聚焦状态 tint |
-| `shape_selectedTint` | color | `selected=true` 时的 tint |
-
-`shape_tint` 是 `shape_enableTint` 的兼容名称，`shape_disabledTint` 是
-`shape_disableTint` 的兼容名称；新旧名称同时配置时使用新名称。
-
-下面只配置按下和禁用状态。普通状态没有 `shape_enableTint`，所以
-`@mipmap/obstacles_points` 会显示图片自身颜色：
+`shape_checkedTint` 只有在宿主控件能够产生 `checked` state 时才会匹配；普通
+`ShapeTextView` 本身没有 checked state。
 
 ```xml
 <com.allynav.shape.view.ShapeTextView
@@ -1005,11 +743,13 @@ shapeCheckBox.getButtonDrawableBuilder()
     android:clickable="true"
     android:drawableStart="@mipmap/obstacles_points"
     android:text="障碍点"
-    app:shape_pressedTint="#00C853"
-    app:shape_disableTint="#808080" />
+    app:shape_pressedTint="#FF00C853"
+    app:shape_disableTint="#FF808080" />
 ```
 
-需要普通状态也统一着色时，再添加 `app:shape_enableTint="#FFFFFF"`。Java 动态设置：
+没有配置 `shape_enableTint` 时，普通状态会显示 `@mipmap/obstacles_points` 的原始颜色。
+需要普通状态也统一为白色时，添加 `app:shape_enableTint="#FFFFFFFF"`。新名称与兼容
+名称同时配置时，新名称优先。
 
 ```java
 shapeTextView.getCompoundDrawableTintBuilder()
@@ -1018,67 +758,49 @@ shapeTextView.getCompoundDrawableTintBuilder()
         .intoTint();
 ```
 
-按下状态要求控件可点击。跑马灯内部使用的 `selected=true` 不会触发
-`shape_selectedTint`；只有业务代码调用 `setSelected(true)` 或 XML 设置
-`android:selected="true"` 时，才会应用 selected tint。
+### ShapeImageView state tint
 
-### ShapeImageView 图片 tint
+`ShapeImageView` 的 image tint 不会改变 Shape background、shadow 或 corner radius：
 
-`ShapeImageView` 支持图片 tint 的状态切换，不会改变 Shape 背景、阴影或圆角。未匹配自定义状态时，
-会回退到 `android:tint`；如果没有设置 `android:tint`，则保持 `android:src` 图片自身颜色。
+| Attribute | Description |
+| --- | --- |
+| `shape_enableTint` | enabled 普通 tint；未配置时保留图片自身颜色 |
+| `shape_pressedTint` | pressed tint |
+| `shape_checkedTint` | checked tint |
+| `shape_disableTint` | disabled tint |
+| `shape_focusedTint` | focused tint |
+| `shape_selectedTint` | selected tint |
+| `shape_tint` | `shape_enableTint` 的兼容名称 |
+| `shape_disabledTint` | `shape_disableTint` 的兼容名称 |
 
-| 属性 | 格式 | 说明 |
-| --- | --- | --- |
-| `shape_enableTint` | color | 普通启用状态 tint；不配置时保留图片自身颜色 |
-| `shape_pressedTint` | color | 按下状态 tint |
-| `shape_checkedTint` | color | 选中状态 tint |
-| `shape_disableTint` | color | `enabled=false` 时的 tint |
-| `shape_focusedTint` | color | 聚焦状态 tint |
-| `shape_selectedTint` | color | 选择状态 tint |
-
-`shape_tint` 和 `shape_disabledTint` 继续作为兼容名称使用。
+普通 `ShapeImageView` 没有 checked state，因此 `shape_checkedTint` 需要由实现
+`Checkable` 的扩展控件使用；`pressed`、`disabled`、`focused` 和 `selected` 可以直接
+通过对应的 Android state 触发。
 
 ```xml
 <com.allynav.shape.view.ShapeImageView
     android:layout_width="48dp"
     android:layout_height="48dp"
     android:src="@drawable/ic_location"
-    app:shape_enableTint="#607D8B"
-    app:shape_pressedTint="#1565C0"
-    app:shape_selectedTint="#2E7D32"
-    app:shape_disableTint="#BDBDBD" />
+    app:shape_enableTint="#FF607D8B"
+    app:shape_pressedTint="#FF1565C0"
+    app:shape_selectedTint="#FF2E7D32"
+    app:shape_disableTint="#FFBDBDBD" />
 ```
 
-Java 动态设置：
+`ShapeImageView` 也会回退到 `android:tint`。如果没有任何 tint 配置，则保持
+`android:src` 图片自身颜色。
 
-```java
-shapeImageView.getImageTintBuilder()
-        .setEnableTintColor(0xFF607D8B)
-        .setPressedTintColor(0xFF1565C0)
-        .setSelectedTintColor(0xFF2E7D32)
-        .setDisableTintColor(0xFFBDBDBD)
-        .intoTint();
-```
+### ShapeImageView state src
 
-也可以使用简写方法 `setTint`、`setPressedTint`、`setSelectedTint` 等。
-
-### ShapeImageView 状态 src
-
-`ShapeImageView` 也支持按状态切换图片。状态图片没有配置时回退到默认图片；默认图片没有配置时
-回退到 `android:src`。
-
-按下状态要求控件设置了点击监听，或配置 `android:clickable="true"`。普通 `ShapeImageView`
-的选中状态使用 `shape_selectedSrc` / `shape_selectedTint`，并通过
-`shapeImageView.setSelected(true)` 切换；`checked` 属性仅供实现了 Checkable 状态的扩展控件使用。
-
-| 属性 | 格式 | 说明 |
-| --- | --- | --- |
-| `shape_src` | reference | 默认图片，缺省时使用 `android:src` |
-| `shape_pressedSrc` | reference | 按下状态图片 |
-| `shape_checkedSrc` | reference | 选中状态图片 |
-| `shape_disabledSrc` | reference | 禁用状态图片 |
-| `shape_focusedSrc` | reference | 聚焦状态图片 |
-| `shape_selectedSrc` | reference | 选择状态图片 |
+| Attribute | Description |
+| --- | --- |
+| `shape_src` | 默认图片；缺省时使用 `android:src` |
+| `shape_pressedSrc` | pressed 状态图片 |
+| `shape_checkedSrc` | checked 状态图片 |
+| `shape_disabledSrc` | disabled 状态图片 |
+| `shape_focusedSrc` | focused 状态图片 |
+| `shape_selectedSrc` | selected 状态图片 |
 
 ```xml
 <com.allynav.shape.view.ShapeImageView
@@ -1087,40 +809,29 @@ shapeImageView.getImageTintBuilder()
     android:src="@drawable/ic_normal"
     app:shape_pressedSrc="@drawable/ic_pressed"
     app:shape_selectedSrc="@drawable/ic_selected"
-    app:shape_pressedTint="#1565C0"
-    app:shape_selectedTint="#2E7D32" />
+    app:shape_pressedTint="#FF1565C0"
+    app:shape_selectedTint="#FF2E7D32" />
 ```
 
-Java 动态设置：
+普通 `ShapeImageView` 的 selected 状态通过 `setSelected(true)` 切换；`checked` src 只
+在控件确实进入 checked DrawableState 时生效。按下状态需要控件可点击或配置
+`android:clickable="true"`。
 
-```java
-shapeImageView.getImageSourceBuilder()
-        .setPressedSourceDrawable(AppCompatResources.getDrawable(
-                this, R.drawable.ic_pressed))
-        .setSelectedSourceDrawable(AppCompatResources.getDrawable(
-                this, R.drawable.ic_selected))
-        .intoSource();
-```
+### Image blur shadow
 
-`ImageTintBuilder` 修改后必须调用 `intoTint()`；`ImageSourceBuilder` 修改后必须调用
-`intoSource()`。
+`ShapeImageView` 可以参考 `BlurShadowImageView` 的使用场景，根据当前 src 和 tint 后的
+Drawable 像素生成带图片主色的模糊投影。该功能默认关闭，与普通 `shape_shadowColor`
+轮廓阴影相互独立。
 
-### ShapeImageView 图片彩色模糊投影
-
-`ShapeImageView` 还支持参考 `BlurShadowImageView` 思路实现的图片内容投影。它不是
-`shape_shadowColor` 的替代品：普通 Shape 阴影使用单色轮廓，图片投影会读取当前
-`src` 和 tint 后的 Drawable 像素，生成带有图片主色的柔化背景。该能力默认关闭，
-开启后与 Shape 圆角、状态 src、状态 tint 和单色 Shape 阴影相互独立。
-
-| 属性 | 格式 | 默认值 | 说明 |
+| Attribute | Format | Default | Description |
 | --- | --- | --- | --- |
-| `shape_imageBlurShadowEnable` | boolean | `false` | 是否开启图片自身颜色模糊投影 |
-| `shape_imageBlurShadowRadius` | dimension | `18dp` | 投影扩散半径 |
-| `shape_imageBlurShadowOffsetX` | dimension | `0dp` | 水平偏移，正值向右 |
-| `shape_imageBlurShadowOffsetY` | dimension | `0dp` | 垂直偏移，正值向下 |
-| `shape_imageBlurShadowAlpha` | float | `0.45` | 投影透明度，范围 `0..1` |
-| `shape_imageBlurShadowBitmapScale` | float | `0.18` | 低分辨率缓存比例，范围 `0.05..1` |
-| `shape_imageBlurShadowImageScale` | float | `0.86` | 开启投影时清晰图片的居中缩放，范围 `0.1..1` |
+| `shape_imageBlurShadowEnable` | boolean | `false` | 是否开启 image blur shadow |
+| `shape_imageBlurShadowRadius` | dimension | `18dp` | blur radius |
+| `shape_imageBlurShadowOffsetX` | dimension | `0dp` | 水平偏移 |
+| `shape_imageBlurShadowOffsetY` | dimension | `0dp` | 垂直偏移 |
+| `shape_imageBlurShadowAlpha` | float | `0.45` | alpha，范围 `0..1` |
+| `shape_imageBlurShadowBitmapScale` | float | `0.18` | 低分辨率 cache scale，范围 `0.05..1` |
+| `shape_imageBlurShadowImageScale` | float | `0.86` | 清晰图片居中缩放，范围 `0.1..1` |
 
 ```xml
 <com.allynav.shape.view.ShapeImageView
@@ -1136,7 +847,7 @@ shapeImageView.getImageSourceBuilder()
     app:shape_imageBlurShadowImageScale="0.84" />
 ```
 
-Java 动态配置使用独立 Builder；修改后会立即失效缓存并重绘：
+Java 动态配置使用独立 Builder。该 Builder 的尺寸参数为 px：
 
 ```java
 shapeImageView.getImageBlurShadowBuilder()
@@ -1147,33 +858,271 @@ shapeImageView.getImageBlurShadowBuilder()
         .setImageScale(0.84f);
 ```
 
-投影缓存只在图片、状态 tint、尺寸或矩阵变化时重建，控件离开窗口会主动释放 Bitmap。
-投影绘制在 ImageView 内容下方，但仍受自身 View 边界裁剪；需要让投影更明显时，应适当
-降低 `shape_imageBlurShadowImageScale`，并给控件留出足够尺寸。图片投影不适合在大量
-RecyclerView 条目中同时开启。
+投影会在图片、tint、尺寸或 image matrix 变化时重建；控件离开 window 后会释放 bitmap。
+投影仍受 View 自身边界裁剪，建议给控件留出足够空间，不要在大量 RecyclerView item 中
+无节制开启。
 
-### TextStateDelegate
+## ShapeSwitchButton
 
-文本控件通过 `getTextStateDelegate()` 获取，支持 `setPressedText`、`setCheckedText`、
-`setDisabledText`、`setFocusedText`、`setSelectedText`。
+`ShapeSwitchButton` 基于 AndroidX `SwitchCompat`，不是 `ShapeButton` 的子类。它保留
+checked、拖动切换、animation、RTL、accessibility 和 state save 行为；轨道使用统一的
+Shape background，thumb 由控件绘制。
 
-## 状态匹配顺序
+```xml
+<com.allynav.shape.view.ShapeSwitchButton
+    android:id="@+id/switch_enabled"
+    android:layout_width="58dp"
+    android:layout_height="36dp"
+    android:checked="true"
+    app:shape_radius="18dp"
+    app:shape_solidColor="#FFDDDDDD"
+    app:shape_solidCheckedColor="#FF40B5FF"
+    app:shape_switchThumbColor="#FFFFFFFF"
+    app:shape_switchThumbCheckedColor="#FFFFFFFF"
+    app:shape_switchAnimationEnable="true" />
+```
 
-背景和状态文本优先处理禁用状态，其余状态依次为按下、选中、聚焦、选择，最后回退到默认状态。
-CheckBox/RadioButton 的 `checked` 状态只有在控件确实进入选中状态时才会显示。
+轨道使用 `shape_solidColor` 表示关闭状态，`shape_solidCheckedColor` 表示开启状态。
 
-## 注意事项
+| Attribute | Default | Description |
+| --- | --- | --- |
+| `shape_switchThumbColor` | `#FFFFFFFF` | 关闭状态 thumb color |
+| `shape_switchThumbCheckedColor` | fallback | checked thumb color |
+| `shape_switchThumbPressedColor` | fallback | pressed thumb color |
+| `shape_switchThumbDisabledColor` | `#FFBDBDBD` | disabled thumb color |
+| `shape_switchThumbInset` | `2dp` | thumb 相对 Drawable 边界的 inset |
+| `shape_switchAnimationEnable` | `true` | 是否保留 checked position animation |
 
-1. `ShapeDrawableBuilder` 修改后必须调用 `intoBackground()`。
-2. `TextColorBuilder` 修改后必须调用 `intoTextColor()`。
-3. `ButtonDrawableBuilder` 修改后必须调用 `intoButtonDrawable()`。
-4. Java Builder 的尺寸参数单位是 px；XML dimension 建议使用 dp。
-5. 阴影空间位于 View 边界内。固定尺寸过小时，主体内容会变小，应给控件预留足够宽高。
-6. 单角属性会覆盖 `shape_radiusInTop`、`shape_radiusInBottom` 和 `shape_radius`。
-7. 使用 `shape_solidGradient*` 后，渐变填充优先于普通 `shape_solidColor`。
-8. 不要同时引入原版 ShapeView/ShapeDrawable，资源名称兼容会导致冲突。
+Java：
 
-## 许可和来源
+```java
+ShapeSwitchButton switchButton = findViewById(R.id.switch_enabled);
+switchButton.setOnCheckedChangeListener((button, checked) -> {
+    // checked 表示开关的最终状态。
+});
+```
 
-ShapeView 与 ShapeDrawable 使用 Apache-2.0 License；阴影空间和缓存设计参考了 MIT License
-的 ShadowLayout。完整说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+## ShapeScrollIndicator
+
+`ShapeScrollIndicator` 是独立绘制的滚动指示器，支持 `ScrollView` 和
+`HorizontalScrollView`。它通过 `ViewTreeObserver` 观察目标滚动，不会覆盖业务已有的
+`setOnScrollChangeListener`。
+
+```xml
+<com.allynav.shape.view.ShapeScrollIndicator
+    android:id="@+id/scroll_indicator"
+    android:layout_width="4dp"
+    android:layout_height="match_parent"
+    app:shape_indicatorTrackColor="#331B1C21"
+    app:shape_indicatorColor="#4DECF7FF"
+    app:shape_indicatorLength="0.2"
+    app:shape_indicatorAlwaysShow="false" />
+```
+
+```java
+ShapeScrollIndicator indicator = findViewById(R.id.scroll_indicator);
+indicator.bindScrollView(scrollView);
+
+// 横向滚动：
+// indicator.bindHorizontalScrollView(horizontalScrollView);
+
+// 页面销毁或更换目标时解除监听并恢复目标 View 原来的 scrollbar 配置：
+indicator.unbind();
+```
+
+如果业务已经自行注册滚动监听，可以在原 listener 中转发：
+
+```java
+indicator.bindScrollViewFromScrollListener(
+        scrollView, scrollX, scrollY, oldScrollX, oldScrollY);
+```
+
+| Attribute | Format | Default | Description |
+| --- | --- | --- | --- |
+| `shape_indicatorOrientation` | `vertical` / `horizontal` | `vertical` | indicator direction |
+| `shape_indicatorTrackColor` | color | `#331B1C21` | track color |
+| `shape_indicatorColor` | color | `#4DECF7FF` | thumb color |
+| `shape_indicatorLength` | float `0..1` | `0.2` | thumb 占 track 的比例 |
+| `shape_indicatorTrackRound` | boolean | `true` | 是否使用 round track/thumb |
+| `shape_indicatorAnimationDuration` | integer | `500` | fade duration，单位 ms |
+| `shape_indicatorHideDelay` | integer | `1500` | 滚动停止后延迟隐藏时间，单位 ms |
+| `shape_indicatorAlwaysShow` | boolean | `false` | 是否始终显示 |
+
+Java API 还支持 `setProgressPercent(0..1)` 手动设置进度；`setProcessPrecent()` 是为
+兼容 ShadowLayout 历史拼写保留的方法，其历史语义是设置 indicator length。
+
+## ViewGroup Child Clipping
+
+以下 Shape ViewGroup 会在绘制子 View 时使用与自身 Shape background 一致的圆角或椭圆
+path 进行 clipping：
+
+- `ShapeLinearLayout`
+- `ShapeFrameLayout`
+- `ShapeRelativeLayout`
+- `ShapeConstraintLayout`
+- `ShapeRecyclerView`
+- `ShapeRadioGroup`
+
+因此图片、视频、自定义绘制 View 和 RecyclerView item 不会从容器的 rounded corner 区域
+溢出。阴影开启时，clip path 会扣除 shadow 占用的 inset。
+
+该能力只限制子 View 的绘制区域，不改变子 View 的 measure、layout、click、touch 或
+scroll event。`line` 和 `ring` 是线条/环形绘制模型，不作为承载子 View 的 rounded
+corner container。
+
+## Java Builder API
+
+### ShapeDrawableBuilder
+
+所有 Shape 控件都可以通过 `getShapeDrawableBuilder()` 获取：
+
+| Category | Methods |
+| --- | --- |
+| Shape | `setType`、`setWidth`、`setHeight`、`setLineGravity` |
+| Radius | `setRadius`、`setRadiusRelative`、`setTopRadius`、`setBottomRadius`、`setTopLeftRadius`、`setTopRightRadius`、`setBottomLeftRadius`、`setBottomRightRadius` |
+| Fill state | `setSolidColor`、`setSolidPressedColor`、`setSolidCheckedColor`、`setSolidDisabledColor`、`setSolidFocusedColor`、`setSolidSelectedColor` |
+| Fill gradient | `setSolidGradientColors`、`setSolidGradientOrientation`、`setSolidGradientAngle`、`setSolidGradientType`、`setSolidGradientCenterX`、`setSolidGradientCenterY`、`setSolidGradientRadius`、`clearSolidGradientColors` |
+| Border | `setStrokeColor`、`setStrokePressedColor`、`setStrokeCheckedColor`、`setStrokeDisabledColor`、`setStrokeFocusedColor`、`setStrokeSelectedColor`、`setStrokeSize`、`setStrokeDashSize`、`setStrokeDashGap` |
+| Border gradient | `setStrokeGradientColors`、`setStrokeGradientOrientation`、`setStrokeGradientAngle`、`clearStrokeGradientColors` |
+| Ring | `setRingInnerRadiusSize`、`setRingInnerRadiusRatio`、`setRingThicknessSize`、`setRingThicknessRatio` |
+| Shadow | `setShadowHidden`、`setShadowSize`、`setShadowColor`、`setShadowOffsetX`、`setShadowOffsetY`、`setShadowSpread`、`setShadowSymmetry`、`setShadowHiddenLeft`、`setShadowHiddenTop`、`setShadowHiddenRight`、`setShadowHiddenBottom`、`setShadowBitmapScale` |
+| Ripple | `setRippleEnable`、`setRippleColor` |
+| Click state | `setShapeClickable`、`setNonClickableBackgroundDrawable`、`setNonClickableBackgroundColor` |
+| Custom background | `setBackgroundDrawable`、`setPressedBackgroundDrawable`、`setCheckedBackgroundDrawable`、`setDisabledBackgroundDrawable`、`setFocusedBackgroundDrawable`、`setSelectedBackgroundDrawable` |
+| Apply | `intoBackground`、`clearBackground` |
+
+典型的动态 shadow 配置：
+
+```java
+private int dpToPx(float value) {
+    return Math.round(value * getResources().getDisplayMetrics().density);
+}
+
+shapeButton.getShapeDrawableBuilder()
+        .setSolidColor(0xFFFFFFFF)
+        .setTopRadius(dpToPx(18))
+        .setBottomRadius(dpToPx(10))
+        .setShadowSize(dpToPx(14))
+        .setShadowColor(0x52000000)
+        .setShadowOffsetY(dpToPx(5))
+        .setShadowSpread(dpToPx(1))
+        .setShadowSymmetry(false)
+        .setShadowBitmapScale(0.5f)
+        .setRippleEnable(true)
+        .setRippleColor(0x1F000000)
+        .intoBackground();
+```
+
+### TextColorBuilder and TextStateDelegate
+
+```java
+shapeTextView.getTextColorBuilder()
+        .setTextColor(0xFFFFFFFF)
+        .setTextPressedColor(0xFFE2E8F0)
+        .setTextDisabledColor(0xFFF1F5F9)
+        .setTextStrokeColor(0xFF000000)
+        .setTextStrokeSize(dpToPx(1))
+        .intoTextColor();
+
+shapeTextView.getTextStateDelegate()
+        .setPressedText("松开提交")
+        .setDisabledText("暂不可用")
+        .setFocusedText("继续提交");
+```
+
+`TextColorBuilder` 修改后必须调用 `intoTextColor()`；`TextStateDelegate` 的 state text
+setter 会立即刷新，不需要额外调用 `into...()`。
+
+### Image builders
+
+```java
+shapeImageView.getImageTintBuilder()
+        .setEnableTintColor(0xFF607D8B)
+        .setPressedTintColor(0xFF1565C0)
+        .setSelectedTintColor(0xFF2E7D32)
+        .setDisableTintColor(0xFFBDBDBD)
+        .intoTint();
+
+shapeImageView.getImageSourceBuilder()
+        .setPressedSourceDrawable(AppCompatResources.getDrawable(
+                this, R.drawable.ic_pressed))
+        .setSelectedSourceDrawable(AppCompatResources.getDrawable(
+                this, R.drawable.ic_selected))
+        .intoSource();
+```
+
+`ImageTintBuilder` 修改后调用 `intoTint()`；`ImageSourceBuilder` 修改后调用
+`intoSource()`。将某个 state setter 传入 `null`，可以移除该 state 配置并回退到默认行为。
+
+### ButtonDrawableBuilder
+
+只有 `ShapeCheckBox` 和 `ShapeRadioButton` 提供 `getButtonDrawableBuilder()`：
+
+```java
+shapeCheckBox.getButtonDrawableBuilder()
+        .setButtonDrawable(AppCompatResources.getDrawable(
+                this, R.drawable.ic_unchecked))
+        .setButtonCheckedDrawable(AppCompatResources.getDrawable(
+                this, R.drawable.ic_checked))
+        .setButtonDisabledDrawable(AppCompatResources.getDrawable(
+                this, R.drawable.ic_disabled))
+        .intoButtonDrawable();
+```
+
+## State Priority
+
+背景、文本颜色、文本内容、image tint、image src 和 button Drawable 使用统一的 state
+匹配顺序：
+
+1. disabled
+2. pressed
+3. checked
+4. focused
+5. selected
+6. enabled/default fallback
+
+未配置某个 state 时会回退到默认值；默认文本最终回退到 `android:text` 或最后一次
+业务 `setText()` 的内容。ShapeTextView 的 Marquee internal selected 不会参与上述业务
+selected 匹配。
+
+## Compatibility Notes
+
+### ShapeView compatibility
+
+- XML 使用 `shape_*` 命名，Java 使用 ShapeView 风格的 `Builder`。
+- 原有常用 ShapeView 控件类名和包名保持为 `com.allynav.shape...`。
+- Builder 的尺寸参数是 px；XML `dimension` 推荐使用 dp。
+- 每个 Builder 修改后都要调用对应的 `into...()`，否则只修改了内存配置，不会重建
+  Drawable。
+
+### ShadowLayout compatibility
+
+阴影的核心效果、空间占位、offset、spread、按边隐藏和 bitmap cache 已集成，但不是对
+ShadowLayout 的 class-level drop-in replacement。特别是：
+
+- `shape_shadow*` 命名与 ShadowLayout 原有 `hl_*` 命名不同。
+- 两者的 shadow 参数和边界计算模型不完全同义，不能按数值一一换算出完全相同的像素。
+- 本库的 `ShapeScrollIndicator` 保留了 `setProcessPrecent()` 兼容入口，但推荐使用拼写
+  正确的 `setProgressPercent()`。
+- ShadowLayout 特有的 `clickable=false` 语义在本库通过独立的 `shape_clickable` 和
+  `shape_nonClickableBackground` 表达，并且不会把控件错误地标记为 disabled。
+
+### Theme and Material
+
+本库不负责替换宿主工程的 theme，也不阻止 AppCompat/Material inflater 工作。普通
+`Button` 被 Material inflater 替换为 `MaterialButton` 属于 theme/inflater 行为；如果
+页面同时使用 Material 控件，请保证宿主 Activity/Dialog 使用对应的 Material theme，并
+统一 AppCompat/Material 版本。
+
+## License
+
+本项目使用 Apache-2.0 License。项目中参考或适配的第三方内容及许可证见
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
+主要参考项目：
+
+- [ShapeView](https://github.com/getActivity/ShapeView)
+- [ShapeDrawable](https://github.com/getActivity/ShapeDrawable)
+- [ShadowLayout](https://github.com/lihangleo2/ShadowLayout)
+- [AdaptiveTextView](https://github.com/AndrewSuan/AdaptiveTextView)
+- [XUI AutoFitTextView](https://github.com/xuexiangjys/XUI)

@@ -77,7 +77,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.anyeshitu:ShapeShadowView:1.1.13")
+    implementation("com.github.anyeshitu:ShapeShadowView:1.1.14")
 }
 ```
 
@@ -85,7 +85,7 @@ Groovy DSL：
 
 ```groovy
 dependencies {
-    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.13'
+    implementation 'com.github.anyeshitu:ShapeShadowView:1.1.14'
 }
 ```
 
@@ -96,7 +96,7 @@ dependencies {
 如果宿主工程必须固定 AppCompat 版本，也可以在依赖声明中排除库的传递依赖：
 
 ```groovy
-implementation('com.github.anyeshitu:ShapeShadowView:1.1.13') {
+implementation('com.github.anyeshitu:ShapeShadowView:1.1.14') {
     // 由宿主工程统一提供 AppCompat，避免三方库传递版本改变现有主题行为。
     exclude group: 'androidx.appcompat', module: 'appcompat'
 }
